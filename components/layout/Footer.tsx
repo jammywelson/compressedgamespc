@@ -32,7 +32,7 @@ export default function Footer() {
       .then(r=>r.json())
       .then((d:any)=>{ if(d&&Array.isArray(d)) setFooterPages(d.filter((p:any)=>p.showFooter&&p.status==='published')) })
       .catch(()=>{})
-  }, []).filter(p => p.show)
+  }, [])
 
   const socials = [
     { label:'Facebook', href: cfg.socialFacebook },
