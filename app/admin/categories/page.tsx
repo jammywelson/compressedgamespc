@@ -31,6 +31,9 @@ export default function CategoriesPage(){
   const [msg,setMsg]=useState('')
   const [delId,setDelId]=useState<string|null>(null)
   const [saving,setSaving]=useState(false)
+  const [showIconPicker,setShowIconPicker]=useState(false)
+  const [showEditIconPicker,setShowEditIconPicker]=useState(false)
+  const ICONS=['🎮','⚔️','🥊','♟️','👻','🗺️','🏎️','🏙️','⚽','🔫','🚀','🏕️','🧩','🕹️','🗡️','🏆','💥','🎯','🎲','🃏','👾','🤖','🦸','🐉','🏰','🌍','💣','🔥','⚡','🌊','🎪','🎭','🎬','🎵','🛡️','🪄','🧙','🦊','🐺','🦅']
 
   useEffect(()=>{load()},[])
 
@@ -105,7 +108,15 @@ export default function CategoriesPage(){
             </div>
             <div style={{padding:'20px',display:'grid',gap:'14px'}}>
               <div style={{display:'grid',gridTemplateColumns:'70px 1fr 1fr',gap:'12px'}}>
-                <div><label style={LB}>Icon</label><input style={{...SI,textAlign:'center' as any,fontSize:'20px'}} value={editCat.icon} onChange={e=>setEditCat({...editCat,icon:e.target.value})}/></div>
+                <div><label style={LB}>Icon</label>
+  <div style={{position:'relative'}}>
+    <div onClick={()=>setShowEditIconPicker(!showEditIconPicker)} style={{...SI,textAlign:'center' as any,fontSize:'20px',cursor:'pointer',background:'#f9fafb'}}>{editCat.icon||'🎮'}</div>
+    {showEditIconPicker&&<div style={{position:'absolute',top:'40px',left:0,background:'#fff',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'8px',zIndex:100,display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:'4px',width:'240px',boxShadow:'0 4px 12px rgba(0,0,0,.15)'}}>
+      {ICONS.map(ic=><button key={ic} onClick={()=>{setEditCat({...editCat,icon:ic});setShowEditIconPicker(false)}} style={{background:'none',border:'none',fontSize:'18px',cursor:'pointer',padding:'4px',borderRadius:'4px',lineHeight:1}}>{ic}</button>)}
+      <input style={{gridColumn:'1/-1',marginTop:'4px',...SI,fontSize:'14px'}} value={editCat.icon} onChange={e=>setEditCat({...editCat,icon:e.target.value})} placeholder="ya emoji type karo"/>
+    </div>}
+  </div>
+</div>
                 <div><label style={LB}>Name</label><input style={SI} value={editCat.name} onChange={e=>setEditCat({...editCat,name:e.target.value})}/></div>
                 <div><label style={LB}>Slug</label><input style={{...SI,color:'#0891b2'}} value={editCat.slug} onChange={e=>setEditCat({...editCat,slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'')})} /></div>
               </div>
@@ -151,7 +162,15 @@ export default function CategoriesPage(){
           <div style={{background:'#fff',border:'1px solid #c7d2fe',borderRadius:'10px',padding:'20px',marginBottom:'16px'}}>
             <div style={{fontSize:'15px',fontWeight:700,color:'#111827',marginBottom:'14px'}}>Add New Category</div>
             <div style={{display:'grid',gridTemplateColumns:'70px 1fr 1fr auto',gap:'12px',alignItems:'flex-end'}}>
-              <div><label style={LB}>Icon</label><input style={{...SI,textAlign:'center' as any,fontSize:'20px'}} value={newCat.icon} onChange={e=>setNewCat(n=>({...n,icon:e.target.value}))} /></div>
+              <div><label style={LB}>Icon</label>
+  <div style={{position:'relative'}}>
+    <div onClick={()=>setShowIconPicker(!showIconPicker)} style={{...SI,textAlign:'center' as any,fontSize:'20px',cursor:'pointer',background:'#f9fafb'}}>{newCat.icon||'🎮'}</div>
+    {showIconPicker&&<div style={{position:'absolute',top:'40px',left:0,background:'#fff',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'8px',zIndex:100,display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:'4px',width:'240px',boxShadow:'0 4px 12px rgba(0,0,0,.15)'}}>
+      {ICONS.map(ic=><button key={ic} onClick={()=>{setNewCat(n=>({...n,icon:ic}));setShowIconPicker(false)}} style={{background:'none',border:'none',fontSize:'18px',cursor:'pointer',padding:'4px',borderRadius:'4px',lineHeight:1}}>{ic}</button>)}
+      <input style={{gridColumn:'1/-1',marginTop:'4px',...SI,fontSize:'14px'}} value={newCat.icon} onChange={e=>setNewCat(n=>({...n,icon:e.target.value}))} placeholder="ya emoji type karo"/>
+    </div>}
+  </div>
+</div>
               <div><label style={LB}>Name *</label><input style={SI} value={newCat.name} onChange={e=>setNewCat(n=>({...n,name:e.target.value,slug:e.target.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')}))} autoFocus/></div>
               <div><label style={LB}>Slug</label><input style={{...SI,color:'#0891b2'}} value={newCat.slug} onChange={e=>setNewCat(n=>({...n,slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'')}))} /></div>
               <button onClick={addCat} disabled={saving} style={{background:'#4f46e5',color:'#fff',border:'none',borderRadius:'7px',padding:'9px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:'inherit',height:'38px'}}>{saving?'...':'Add'}</button>
