@@ -38,7 +38,15 @@ export default function CategoriesPage(){
       fetch('/api/games').then(r=>r.json()),
       fetch('/api/settings?key=categories').then(r=>r.json())
     ]).then(([games,saved])=>{
-      if(saved&&Array.isArray(saved))setCats(saved)
+      if(saved&&Array.isArray(saved)&&saved.length>0){
+        // Merge saved with defaults to ensure all fields exist
+        const merged = saved.map((s:any)=>({
+          id:s.id||s.slug, name:s.name, slug:s.slug||s.id,
+          icon:s.icon||'🎮', seoTitle:s.seoTitle||'',
+          seoDesc:s.seoDesc||'', seoKeywords:s.seoKeywords||''
+        }))
+        setCats(merged)
+      }
       if(Array.isArray(games)){
         const c:Record<string,number>={}
         games.forEach((g:any)=>{c[g.category]=(c[g.category]||0)+1})
