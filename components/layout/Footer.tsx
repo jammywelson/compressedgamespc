@@ -26,14 +26,13 @@ export default function Footer() {
     } catch(e) {}
   }, [])
 
-  const pages = [
-    { label:'About Us',       href:'/about',         show: cfg.showAbout      },
-    { label:'Contact Us',     href:'/contact',        show: cfg.showContact    },
-    { label:'Privacy Policy', href:'/privacy-policy', show: cfg.showPrivacy    },
-    { label:'Disclaimer',     href:'/disclaimer',     show: cfg.showDisclaimer },
-    { label:'DMCA',           href:'/dmca',           show: cfg.showDmca       },
-    { label:'Terms of Use',   href:'/terms',          show: cfg.showTerms      },
-  ].filter(p => p.show)
+  const [footerPages, setFooterPages] = useState<any[]>([])
+  useEffect(() => {
+    fetch('/api/settings?key=pages', { cache:'no-store' })
+      .then(r=>r.json())
+      .then((d:any)=>{ if(d&&Array.isArray(d)) setFooterPages(d.filter((p:any)=>p.showFooter&&p.status==='published')) })
+      .catch(()=>{})
+  }, []).filter(p => p.show)
 
   const socials = [
     { label:'Facebook', href: cfg.socialFacebook },
@@ -104,8 +103,8 @@ export default function Footer() {
                 <Link href="/"                 style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>Home</Link>
                 <Link href="/games"            style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>All Games</Link>
                 <Link href="/games?status=hot" style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>Hot Games</Link>
-                {pages.map(p => (
-                  <Link key={p.href} href={p.href} style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>{p.label}</Link>
+                {footerPages.map((p:any) => (
+                  <Link key={p.slug} href={`/${p.slug}`} style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>{p.title}</Link>
                 ))}
               </div>
             </div>
@@ -117,8 +116,8 @@ export default function Footer() {
           <div style={{ borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:'16px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap' as any, gap:'8px' }}>
             <span style={{ fontSize:'11px', color:'rgba(255,255,255,.25)' }}>{cfg.footerText}</span>
             <div style={{ display:'flex', gap:'12px', flexWrap:'wrap' as any }}>
-              {pages.slice(0,4).map(p => (
-                <Link key={p.href} href={p.href} style={{ fontSize:'11px', color:'rgba(255,255,255,.25)' }}>{p.label}</Link>
+              {footerPages.slice(0,4).map((p:any) => (
+                <Link key={p.slug} href={`/${p.slug}`} style={{ fontSize:'11px', color:'rgba(255,255,255,.25)' }}>{p.title}</Link>
               ))}
             </div>
           </div>
