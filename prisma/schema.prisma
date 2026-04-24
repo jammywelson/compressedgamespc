@@ -46,3 +46,19 @@ model Setting {
   key   String @unique
   value String @db.Text
 }
+
+model PageView {
+  id        String   @id @default(cuid())
+  page      String
+  device    String?
+  browser   String?
+  createdAt DateTime @default(now())
+}
+
+model DailyStat {
+  id        String   @id @default(cuid())
+  date      String   @unique
+  views     Int      @default(0)
+  visitors  Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
