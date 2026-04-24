@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Game {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  category     String
+  size         String
+  originalSize String?
+  status       String   @default("active")
+  featured     Boolean  @default(false)
+  description  String?  @db.Text
+  downloadLinks String[] 
+  rating       Float    @default(4.0)
+  downloadCount Int     @default(0)
+  seoTitle     String?
+  seoDesc      String?
+  seoKeywords  String?
+  altText      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  username    String   @unique
+  email       String   @unique
+  password    String
+  role        String   @default("editor")
+  permissions String[]
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String @db.Text
+}
