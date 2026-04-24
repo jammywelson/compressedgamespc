@@ -1,120 +1,144 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
-export default function SiteStatsPage() {
-  const [stats, setStats] = useState({
-    totalGames: 0, totalDownloads: 0, hotGames: 0,
-    activeGames: 0, draftGames: 0, featuredGames: 0,
-    topGames: [] as any[],
-    categories: [] as any[],
-  })
+export default function StatsPage() {
+  const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState('7')
+  const [live, setLive] = useState(0)
 
-  useEffect(() => {
-    fetch('/api/games')
-      .then(r => r.json())
-      .then((games: any[]) => {
-        if (!Array.isArray(games)) { setLoading(false); return }
-        const cats: Record<string,number> = {}
-        games.forEach(g => { cats[g.category] = (cats[g.category]||0)+1 })
-        setStats({
-          totalGames:     games.length,
-          totalDownloads: games.reduce((s,g)=>s+(g.downloadCount||0),0),
-          hotGames:       games.filter(g=>g.status==='hot').length,
-          activeGames:    games.filter(g=>g.status==='active').length,
-          draftGames:     games.filter(g=>g.status==='draft').length,
-          featuredGames:  games.filter(g=>g.featured).length,
-          topGames:       [...games].sort((a,b)=>(b.downloadCount||0)-(a.downloadCount||0)).slice(0,10),
-          categories:     Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([name,count])=>({name,count})),
-        })
-        setLoading(false)
-      })
-      .catch(()=>setLoading(false))
-  }, [])
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/analytics?period=${period}`)
+      const d = await r.json()
+      setData(d); setLive(d.realtimeViews || 0)
+    } catch(e) {}
+    setLoading(false)
+  }, [period])
 
-  const cards = [
-    { label:'Total Games',    val:stats.totalGames,     color:'#4f46e5', bg:'#eef2ff', icon:'🎮' },
-    { label:'Total Downloads',val:stats.totalDownloads, color:'#16a34a', bg:'#f0fdf4', icon:'⬇️' },
-    { label:'Hot Games 🔥',   val:stats.hotGames,       color:'#e53935', bg:'#fef2f2', icon:'🔥' },
-    { label:'Active Games',   val:stats.activeGames,    color:'#0891b2', bg:'#ecfeff', icon:'✅' },
-    { label:'Featured',       val:stats.featuredGames,  color:'#f59e0b', bg:'#fffbeb', icon:'⭐' },
-    { label:'Draft',          val:stats.draftGames,     color:'#6b7280', bg:'#f9fafb', icon:'📝' },
-  ]
+  useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t) }, [load])
 
   return (
-    <div style={{ background:'#f0f2f8', minHeight:'100vh' }}>
-      <div style={{ background:'#fff', borderBottom:'1px solid #e5e7eb', padding:'0 24px', height:'54px', display:'flex', alignItems:'center', boxShadow:'0 1px 3px rgba(0,0,0,.06)' }}>
-        <span style={{ fontFamily:'system-ui', fontSize:'18px', fontWeight:700, color:'#111827' }}>Site Stats</span>
-        {!loading && <span style={{ marginLeft:'12px', fontSize:'12px', color:'#16a34a', fontWeight:500 }}>● Live Data</span>}
+    <div style={{background:'#f0f2f8', minHeight:'100vh'}}>
+      <div style={{background:'#fff', borderBottom:'1px solid #e5e7eb', padding:'0 24px', height:'54px', display:'flex', alignItems:'center', gap:'12px'}}>
+        <span style={{fontSize:'18px', fontWeight:700, color:'#111827'}}>Site Analytics</span>
+        <div style={{display:'flex', alignItems:'center', gap:'6px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'20px', padding:'4px 10px'}}>
+          <div style={{width:'8px', height:'8px', borderRadius:'50%', background:'#16a34a', animation:'pulse 2s infinite'}}/>
+          <span style={{fontSize:'12px', color:'#16a34a', fontWeight:600}}>{live} live</span>
+        </div>
+        <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+        <div style={{display:'flex', gap:'4px', marginLeft:'auto'}}>
+          {[['1','Today'],['7','7 Days'],['30','30 Days'],['90','3 Months']].map(([v,l])=>(
+            <button key={v} onClick={()=>setPeriod(v)}
+              style={{background:period===v?'#4f46e5':'#f3f4f6', color:period===v?'#fff':'#374151', border:'none', borderRadius:'6px', padding:'5px 10px', fontSize:'12px', cursor:'pointer', fontFamily:'inherit', fontWeight:period===v?600:400}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <button onClick={load} style={{background:'#f3f4f6', border:'none', borderRadius:'6px', padding:'6px 10px', fontSize:'13px', cursor:'pointer'}}>↻</button>
       </div>
-
-      <div style={{ padding:'24px' }}>
+      <div style={{padding:'20px'}}>
         {loading ? (
-          <div style={{ textAlign:'center' as any, padding:'60px', color:'#6b7280' }}>Loading stats...</div>
-        ) : (<>
-          {/* Stats cards */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'12px', marginBottom:'20px' }}>
-            {cards.map(c => (
-              <div key={c.label} style={{ background:c.bg, border:`1px solid ${c.color}22`, borderRadius:'10px', padding:'16px' }}>
-                <div style={{ fontSize:'28px', marginBottom:'6px' }}>{c.icon}</div>
-                <div style={{ fontSize:'26px', fontWeight:700, color:c.color }}>{c.val.toLocaleString()}</div>
-                <div style={{ fontSize:'12px', color:'#6b7280', marginTop:'2px' }}>{c.label}</div>
+          <div style={{textAlign:'center' as any, padding:'60px', color:'#6b7280'}}>Loading...</div>
+        ) : (
+          <>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'12px', marginBottom:'20px'}}>
+              {[
+                {label:'Total Views', val:(data?.totalViews||0).toLocaleString(), color:'#4f46e5', bg:'#eef2ff', icon:'👁'},
+                {label:`Views (${period}d)`, val:(data?.recentViews||0).toLocaleString(), color:'#0891b2', bg:'#ecfeff', icon:'📈'},
+                {label:'Live (5min)', val:live, color:'#16a34a', bg:'#f0fdf4', icon:'🔴'},
+                {label:'Avg/Day', val:Math.round((data?.recentViews||0)/parseInt(period)), color:'#ea580c', bg:'#fff7ed', icon:'📅'},
+              ].map(s=>(
+                <div key={s.label} style={{background:s.bg, border:`1px solid ${s.color}22`, borderRadius:'10px', padding:'16px'}}>
+                  <div style={{fontSize:'24px', marginBottom:'4px'}}>{s.icon}</div>
+                  <div style={{fontSize:'26px', fontWeight:700, color:s.color}}>{s.val}</div>
+                  <div style={{fontSize:'12px', color:'#6b7280', marginTop:'2px'}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'16px'}}>
+              <div style={{background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', padding:'16px'}}>
+                <div style={{fontSize:'14px', fontWeight:700, color:'#111827', marginBottom:'14px'}}>📊 Daily Views</div>
+                {data?.dailyStats?.length > 0 ? (
+                  <div style={{display:'flex', alignItems:'flex-end', gap:'3px', height:'100px'}}>
+                    {data.dailyStats.map((d:any) => {
+                      const max = Math.max(...data.dailyStats.map((x:any)=>x.views||0), 1)
+                      const h = Math.max(4, Math.round(((d.views||0)/max)*90))
+                      return (
+                        <div key={d.date} style={{flex:1, display:'flex', flexDirection:'column' as any, alignItems:'center', gap:'2px'}}>
+                          <div style={{fontSize:'8px', color:'#6b7280'}}>{d.views||0}</div>
+                          <div style={{width:'100%', height:`${h}px`, background:'#4f46e5', borderRadius:'2px 2px 0 0'}}/>
+                          <div style={{fontSize:'8px', color:'#9ca3af'}}>{d.date?.slice(5)}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : <div style={{textAlign:'center' as any, color:'#9ca3af', padding:'20px', fontSize:'13px'}}>Visitors aane ke baad data show hoga</div>}
               </div>
-            ))}
-          </div>
-
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
-            {/* Top Downloads */}
-            <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', overflow:'hidden' }}>
-              <div style={{ padding:'14px 20px', borderBottom:'1px solid #f3f4f6', fontFamily:'system-ui', fontSize:'15px', fontWeight:700, color:'#111827' }}>
-                🏆 Top Downloads
+              <div style={{background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', padding:'16px'}}>
+                <div style={{fontSize:'14px', fontWeight:700, color:'#111827', marginBottom:'12px'}}>🏆 Top Pages</div>
+                {data?.topPages?.length > 0 ? (
+                  <div style={{display:'flex', flexDirection:'column' as any, gap:'6px'}}>
+                    {data.topPages.slice(0,8).map((p:any) => {
+                      const max = data.topPages[0]?.views||1
+                      const pct = Math.round((p.views/max)*100)
+                      return (
+                        <div key={p.page}>
+                          <div style={{display:'flex', justifyContent:'space-between', marginBottom:'2px'}}>
+                            <span style={{fontSize:'11px', color:'#374151', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as any, maxWidth:'160px'}}>{p.page||'/'}</span>
+                            <span style={{fontSize:'11px', color:'#4f46e5', fontWeight:600}}>{p.views}</span>
+                          </div>
+                          <div style={{height:'4px', background:'#f3f4f6', borderRadius:'2px'}}>
+                            <div style={{height:'100%', width:`${pct}%`, background:'#4f46e5', borderRadius:'2px'}}/>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : <div style={{textAlign:'center' as any, color:'#9ca3af', padding:'20px', fontSize:'13px'}}>Data collecting...</div>}
               </div>
-              {stats.topGames.length === 0 ? (
-                <div style={{ padding:'30px', textAlign:'center' as any, color:'#9ca3af', fontSize:'13px' }}>Games add karo pehle</div>
-              ) : (
-                <div>
-                  {stats.topGames.map((g,i) => (
-                    <div key={g.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 16px', borderBottom:'1px solid #f9fafb' }}>
-                      <span style={{ fontSize:'16px', fontWeight:700, color:['#f59e0b','#94a3b8','#b45310'][i]||'#9ca3af', minWidth:'20px', textAlign:'center' as any }}>{i+1}</span>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:'13px', fontWeight:600, color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as any }}>{g.title}</div>
-                        <div style={{ fontSize:'11px', color:'#6b7280' }}>{g.category}</div>
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
+              <div style={{background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', padding:'16px'}}>
+                <div style={{fontSize:'14px', fontWeight:700, color:'#111827', marginBottom:'12px'}}>📱 Devices</div>
+                {data?.deviceStats?.length > 0 ? data.deviceStats.map((d:any)=>{
+                  const total = data.deviceStats.reduce((s:number,x:any)=>s+x.count,0)||1
+                  const pct = Math.round((d.count/total)*100)
+                  return (
+                    <div key={d.device} style={{marginBottom:'8px'}}>
+                      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'3px'}}>
+                        <span style={{fontSize:'12px', color:'#374151'}}>{d.device==='mobile'?'📱':'🖥'} {d.device}</span>
+                        <span style={{fontSize:'12px', color:'#6b7280'}}>{pct}%</span>
                       </div>
-                      <span style={{ fontSize:'12px', color:'#4f46e5', fontWeight:600 }}>{(g.downloadCount||0).toLocaleString()}</span>
+                      <div style={{height:'6px', background:'#f3f4f6', borderRadius:'3px'}}>
+                        <div style={{height:'100%', width:`${pct}%`, background:d.device==='mobile'?'#4f46e5':'#16a34a', borderRadius:'3px'}}/>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Categories */}
-            <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', overflow:'hidden' }}>
-              <div style={{ padding:'14px 20px', borderBottom:'1px solid #f3f4f6', fontFamily:'system-ui', fontSize:'15px', fontWeight:700, color:'#111827' }}>
-                📂 Games by Category
+                  )
+                }) : <div style={{textAlign:'center' as any, color:'#9ca3af', padding:'20px', fontSize:'13px'}}>Data collecting...</div>}
               </div>
-              {stats.categories.length === 0 ? (
-                <div style={{ padding:'30px', textAlign:'center' as any, color:'#9ca3af', fontSize:'13px' }}>Games add karo pehle</div>
-              ) : (
-                <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column' as any, gap:'8px' }}>
-                  {stats.categories.map(c => {
-                    const pct = Math.round((c.count / stats.totalGames) * 100)
-                    return (
-                      <div key={c.name}>
-                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'3px' }}>
-                          <span style={{ fontSize:'12px', color:'#374151', fontWeight:500 }}>{c.name}</span>
-                          <span style={{ fontSize:'12px', color:'#6b7280' }}>{c.count} ({pct}%)</span>
-                        </div>
-                        <div style={{ height:'6px', background:'#f3f4f6', borderRadius:'3px', overflow:'hidden' }}>
-                          <div style={{ height:'100%', width:`${pct}%`, background:'#4f46e5', borderRadius:'3px' }}/>
-                        </div>
+              <div style={{background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', padding:'16px'}}>
+                <div style={{fontSize:'14px', fontWeight:700, color:'#111827', marginBottom:'12px'}}>🌐 Browsers</div>
+                {data?.browserStats?.length > 0 ? data.browserStats.map((b:any)=>{
+                  const total = data.browserStats.reduce((s:number,x:any)=>s+x.count,0)||1
+                  const pct = Math.round((b.count/total)*100)
+                  const colors: Record<string,string> = {Chrome:'#4f46e5',Firefox:'#ea580c',Safari:'#0891b2',Edge:'#16a34a',Other:'#6b7280'}
+                  return (
+                    <div key={b.browser} style={{marginBottom:'8px'}}>
+                      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'3px'}}>
+                        <span style={{fontSize:'12px', color:'#374151'}}>{b.browser}</span>
+                        <span style={{fontSize:'12px', color:'#6b7280'}}>{pct}% ({b.count})</span>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                      <div style={{height:'6px', background:'#f3f4f6', borderRadius:'3px'}}>
+                        <div style={{height:'100%', width:`${pct}%`, background:colors[b.browser]||'#6b7280', borderRadius:'3px'}}/>
+                      </div>
+                    </div>
+                  )
+                }) : <div style={{textAlign:'center' as any, color:'#9ca3af', padding:'20px', fontSize:'13px'}}>Data collecting...</div>}
+              </div>
             </div>
-          </div>
-        </>)}
+          </>
+        )}
       </div>
     </div>
   )
