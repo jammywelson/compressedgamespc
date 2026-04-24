@@ -45,11 +45,19 @@ export default function AddGamePage() {
     }).catch(()=>{})
   },[])
 
-  const addNewCat=()=>{
+  const addNewCat=async()=>{
     const n=newCatName.trim()
     if(!n)return
+    const slug=n.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
     setCats((prev:any)=>[...prev,n])
     setForm((f:any)=>({...f,category:n}))
+    // Save to DB
+    try {
+      const existing = await fetch('/api/settings?key=categories').then(r=>r.json())
+      const current = Array.isArray(existing) ? existing : []
+      const newCat = {id:slug,name:n,slug,icon:'🎮',seoTitle:'',seoDesc:'',seoKeywords:''}
+      await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'categories',value:[...current,newCat]})})
+    } catch(e){}
     setNewCatName('');setShowNewCat(false)
   }
 
