@@ -5,20 +5,20 @@ const SI:React.CSSProperties={width:'100%',background:'#fff',border:'1px solid #
 const LB:React.CSSProperties={fontSize:'12px',color:'#374151',fontWeight:500,marginBottom:'5px',display:'block'}
 
 const STARTER=[
-  {id:'action',name:'Action',slug:'action',icon:'\u2694\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'fighting',name:'Fighting',slug:'fighting',icon:'\U0001f94a',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'strategy',name:'Strategy',slug:'strategy',icon:'\u265f\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'horror',name:'Horror',slug:'horror',icon:'\U0001f47b',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'adventure',name:'Adventure',slug:'adventure',icon:'\U0001f5fa\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'racing',name:'Racing',slug:'racing',icon:'\U0001f3ce\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'simulation',name:'Simulation',slug:'simulation',icon:'\U0001f3d9\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'sports',name:'Sports',slug:'sports',icon:'\u26bd',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'shooting',name:'Shooting',slug:'shooting',icon:'\U0001f52b',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'sci-fi',name:'Sci-Fi',slug:'sci-fi',icon:'\U0001f680',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'survival',name:'Survival',slug:'survival',icon:'\U0001f3d5\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'puzzle',name:'Puzzle',slug:'puzzle',icon:'\U0001f9e9',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'old-games',name:'Old Games',slug:'old-games',icon:'\U0001f579\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
-  {id:'action-rpg',name:'Action RPG',slug:'action-rpg',icon:'\U0001f5e1\ufe0f',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'action',name:'Action',slug:'action',icon:'⚔️',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'fighting',name:'Fighting',slug:'fighting',icon:'🥊',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'strategy',name:'Strategy',slug:'strategy',icon:'♟️',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'horror',name:'Horror',slug:'horror',icon:'👻',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'adventure',name:'Adventure',slug:'adventure',icon:'🗺️',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'racing',name:'Racing',slug:'racing',icon:'🏎️',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'simulation',name:'Simulation',slug:'simulation',icon:'🏙️',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'sports',name:'Sports',slug:'sports',icon:'⚽',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'shooting',name:'Shooting',slug:'shooting',icon:'🔫',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'sci-fi',name:'Sci-Fi',slug:'sci-fi',icon:'🚀',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'survival',name:'Survival',slug:'survival',icon:'🏕️',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'puzzle',name:'Puzzle',slug:'puzzle',icon:'🧩',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'old-games',name:'Old Games',slug:'old-games',icon:'🕹️',seoTitle:'',seoDesc:'',seoKeywords:''},
+  {id:'action-rpg',name:'Action RPG',slug:'action-rpg',icon:'🗡️',seoTitle:'',seoDesc:'',seoKeywords:''},
 ]
 
 export default function CategoriesPage(){
@@ -27,7 +27,7 @@ export default function CategoriesPage(){
   const [loading,setLoading]=useState(true)
   const [editCat,setEditCat]=useState<any|null>(null)
   const [showAdd,setShowAdd]=useState(false)
-  const [newCat,setNewCat]=useState({name:'',slug:'',icon:'\U0001f3ae'})
+  const [newCat,setNewCat]=useState({name:'',slug:'',icon:'🎮'})
   const [msg,setMsg]=useState('')
   const [delId,setDelId]=useState<string|null>(null)
   const [saving,setSaving]=useState(false)
@@ -44,7 +44,7 @@ export default function CategoriesPage(){
       if(saved&&Array.isArray(saved)&&saved.length>0){
         setCats(saved.map((s:any)=>({
           id:s.id||s.slug,name:s.name||'',slug:s.slug||s.id||'',
-          icon:s.icon||'\U0001f3ae',seoTitle:s.seoTitle||'',seoDesc:s.seoDesc||'',seoKeywords:s.seoKeywords||''
+          icon:s.icon||'🎮',seoTitle:s.seoTitle||'',seoDesc:s.seoDesc||'',seoKeywords:s.seoKeywords||''
         })))
       }else{setCats(STARTER);await saveToDb(STARTER)}
       if(Array.isArray(games)){
@@ -65,7 +65,7 @@ export default function CategoriesPage(){
     setSaving(true)
     const slug=newCat.slug||newCat.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
     await saveAll([...cats,{id:slug,name:newCat.name.trim(),slug,icon:newCat.icon,seoTitle:'',seoDesc:'',seoKeywords:''}])
-    setNewCat({name:'',slug:'',icon:'\U0001f3ae'});setShowAdd(false);showMsg('Category add ho gayi!');setSaving(false)
+    setNewCat({name:'',slug:'',icon:'🎮'});setShowAdd(false);showMsg('Category add ho gayi!');setSaving(false)
   }
 
   const saveEdit=async()=>{
@@ -84,7 +84,7 @@ export default function CategoriesPage(){
       {delId&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:'12px',padding:'24px',width:'320px',textAlign:'center' as any}}>
-            <div style={{fontSize:'32px',marginBottom:'8px'}}>\U0001f5d1</div>
+            <div style={{fontSize:'32px',marginBottom:'8px'}}>🗑</div>
             <div style={{fontSize:'16px',fontWeight:700,marginBottom:'18px'}}>Delete "{cats.find(c=>c.id===delId)?.name}"?</div>
             <div style={{display:'flex',gap:'10px'}}>
               <button onClick={()=>setDelId(null)} style={{flex:1,background:'#f3f4f6',border:'none',borderRadius:'8px',padding:'10px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
@@ -110,7 +110,7 @@ export default function CategoriesPage(){
                 <div><label style={LB}>Slug</label><input style={{...SI,color:'#0891b2'}} value={editCat.slug} onChange={e=>setEditCat({...editCat,slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'')})} /></div>
               </div>
               <div style={{borderTop:'1px solid #f3f4f6',paddingTop:'14px'}}>
-                <div style={{fontSize:'13px',fontWeight:600,color:'#374151',marginBottom:'10px'}}>\U0001f50d SEO Settings</div>
+                <div style={{fontSize:'13px',fontWeight:600,color:'#374151',marginBottom:'10px'}}>🔍 SEO Settings</div>
                 <div style={{display:'grid',gap:'10px'}}>
                   <div>
                     <label style={LB}>SEO Title</label>
@@ -143,7 +143,7 @@ export default function CategoriesPage(){
         <span style={{fontSize:'12px',color:'#6b7280',background:'#f9fafb',border:'1px solid #e5e7eb',padding:'3px 10px',borderRadius:'6px'}}>{cats.length} categories</span>
         {msg&&<span style={{fontSize:'12px',color:'#16a34a',fontWeight:600}}>{msg}</span>}
         <button onClick={()=>setShowAdd(!showAdd)} style={{marginLeft:'auto',background:'#4f46e5',color:'#fff',border:'none',borderRadius:'7px',padding:'8px 16px',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
-          {showAdd?'\u2715 Cancel':'+ Add Category'}
+          {showAdd?'✕ Cancel':'+ Add Category'}
         </button>
       </div>
       <div style={{padding:'24px'}}>
@@ -172,7 +172,7 @@ export default function CategoriesPage(){
                     <div style={{fontSize:'12px',color:'#6b7280'}}><span style={{color:'#4f46e5',fontWeight:600}}>{counts[cat.name]||0}</span> games</div>
                   </div>
                 </div>
-                {cat.seoTitle&&<div style={{fontSize:'10px',color:'#16a34a',marginBottom:'8px',background:'#f0fdf4',padding:'3px 6px',borderRadius:'4px'}}>\u2713 SEO set</div>}
+                {cat.seoTitle&&<div style={{fontSize:'10px',color:'#16a34a',marginBottom:'8px',background:'#f0fdf4',padding:'3px 6px',borderRadius:'4px'}}>✓ SEO set</div>}
                 <div style={{display:'flex',gap:'6px'}}>
                   <button onClick={()=>setEditCat({...cat})} style={{flex:1,background:'#eef2ff',color:'#4f46e5',border:'1px solid #c7d2fe',borderRadius:'5px',padding:'5px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Edit+SEO</button>
                   <button onClick={()=>setDelId(cat.id)} style={{background:'#fef2f2',color:'#e53935',border:'1px solid #fca5a5',borderRadius:'5px',padding:'5px 8px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit'}}>Del</button>
