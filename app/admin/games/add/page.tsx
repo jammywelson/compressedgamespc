@@ -164,10 +164,17 @@ export default function AddGamePage() {
               </div>
               <div>
                 <label style={LB}>Category</label>
-                <select style={{ ...SI, cursor:'pointer' }} value={form.category} onChange={e=>{ if(e.target.value==='__new__'){setShowNewCat(true)}else{upd('category',e.target.value)} }}>
+                <select style={{ ...SI, cursor:'pointer' }} value={form.category} onChange={e=>{ if(e.target.value==='__new__'){setShowNewCat(true);return}; upd('category',e.target.value) }}>
                   {cats.map(c=><option key={c}>{c}</option>)}
                   <option value='__new__'>+ Add New Category</option>
                 </select>
+                {showNewCat && (
+                  <div style={{display:'flex',gap:'6px',marginTop:'6px'}}>
+                    <input style={{...SI,flex:1}} value={newCatName} onChange={e=>setNewCatName(e.target.value)} placeholder="Naya category naam..." autoFocus/>
+                    <button onClick={addNewCat} style={{background:'#4f46e5',color:'#fff',border:'none',borderRadius:'6px',padding:'6px 12px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Add</button>
+                    <button onClick={()=>setShowNewCat(false)} style={{background:'#f3f4f6',border:'none',borderRadius:'6px',padding:'6px 10px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                  </div>
+                )}
               </div>
               <div>
                 <label style={LB}>Status</label>
