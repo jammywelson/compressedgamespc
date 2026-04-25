@@ -1,148 +1,143 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 
-// What each role can access
-const ROLE_ACCESS: Record<string, string[]> = {
-  superadmin: ['*'],
-  admin:      ['dashboard','games','pages','appearance','stats','ads','seo','categories','permalinks','settings','users','backup','change-password'],
-  manager:    ['dashboard','games','pages','categories','stats'],
-  editor:     ['dashboard','games'],
-  moderator:  ['dashboard','games','stats'],
-  viewer:     ['dashboard'],
-}
-
-function canAccess(role: string, path: string): boolean {
-  const access = ROLE_ACCESS[role] || ['dashboard']
-  if (access.includes('*')) return true
-  const section = path.replace('/admin/','').split('/')[0] || 'dashboard'
-  return access.includes(section)
-}
+const NAV = [
+  { section: 'MAIN', items: [
+    { href: '/admin', icon: '\u{1F4CA}', label: 'Dashboard' },
+  ]},
+  { section: 'CONTENT', items: [
+    { href: '/admin/games', icon: '\u{1F3AE}', label: 'Games', badge: 'new' },
+    { href: '/admin/games/add', icon: '\u2795', label: 'Add Game' },
+    { href: '/admin/categories', icon: '\u{1F4C2}', label: 'Categories' },
+    { href: '/admin/tags', icon: '\u{1F3F7}', label: 'Tags' },
+    { href: '/admin/pages', icon: '\u{1F4C4}', label: 'Pages' },
+    { href: '/admin/media', icon: '\u{1F5BC}', label: 'Media Library' },
+    { href: '/admin/comments', icon: '\u{1F4AC}', label: 'Comments' },
+  ]},
+  { section: 'DESIGN', items: [
+    { href: '/admin/appearance', icon: '\u{1F3A8}', label: 'Appearance' },
+    { href: '/admin/menus', icon: '\u{1F4CB}', label: 'Menus' },
+    { href: '/admin/homepage', icon: '\u{1F3E0}', label: 'Homepage' },
+  ]},
+  { section: 'TOOLS', items: [
+    { href: '/admin/seo', icon: '\u{1F50D}', label: 'SEO' },
+    { href: '/admin/ads', icon: '\u{1F4B0}', label: 'Ads Manager' },
+    { href: '/admin/downloads', icon: '\u{1F4E5}', label: 'Downloads' },
+    { href: '/admin/analytics', icon: '\u{1F4C8}', label: 'Analytics' },
+  ]},
+  { section: 'ADMIN', items: [
+    { href: '/admin/users', icon: '\u{1F465}', label: 'Users' },
+    { href: '/admin/roles', icon: '\u{1F512}', label: 'Roles & Permissions' },
+    { href: '/admin/security', icon: '\u{1F6E1}', label: 'Security' },
+    { href: '/admin/settings', icon: '\u2699', label: 'Settings' },
+    { href: '/admin/backup', icon: '\u{1F4BE}', label: 'Backup & Restore' },
+  ]},
+]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router   = useRouter()
   const pathname = usePathname()
-  const [role, setRole]   = useState('')
-  const [uname, setUname] = useState('')
-  const [ready, setReady] = useState(false)
+  const router = useRouter()
+  const [collapsed, setCollapsed] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const auth = document.cookie.includes('cgpc_admin_auth=true')
-    if (!auth && pathname !== '/admin/login') {
-      router.replace('/admin/login'); return
-    }
-    const r = document.cookie.split(';').find(c=>c.trim().startsWith('cgpc_admin_role='))?.split('=')[1]?.trim() || 'editor'
-    const u = document.cookie.split(';').find(c=>c.trim().startsWith('cgpc_admin_user='))?.split('=')[1]?.trim() || 'admin'
-    setRole(r); setUname(u)
-
-    // Block access to unauthorized sections
-    if (pathname !== '/admin/login' && !canAccess(r, pathname)) {
-      router.replace('/admin')
-    }
-    setReady(true)
+    fetch('/api/admin/me').then(r => r.json()).then(d => {
+      if (d.user) setUser(d.user)
+      else if (pathname !== '/admin/login') router.push('/admin/login')
+    }).catch(() => { if (pathname !== '/admin/login') router.push('/admin/login') })
   }, [pathname])
 
   if (pathname === '/admin/login') return <>{children}</>
-  if (!ready) return null
 
-  const logout = () => {
-    document.cookie = 'cgpc_admin_auth=; path=/; max-age=0'
-    document.cookie = 'cgpc_admin_user=; path=/; max-age=0'
-    document.cookie = 'cgpc_admin_role=; path=/; max-age=0'
-    router.replace('/admin/login')
+  const logout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' })
+    router.push('/admin/login')
   }
 
-  const isSuperAdmin = role === 'superadmin'
-  const isAdmin      = ['superadmin','admin'].includes(role)
-  const canGames     = canAccess(role, '/admin/games')
-  const canAppear    = canAccess(role, '/admin/appearance')
-  const canUsers     = canAccess(role, '/admin/users')
-  const canStats     = canAccess(role, '/admin/stats')
-  const canSeo       = canAccess(role, '/admin/seo')
-  const canAds       = canAccess(role, '/admin/ads')
-
-  const link = (href: string, label: string, icon: string) => {
-    const active = pathname === href || pathname.startsWith(href + '/')
-    return (
-      <Link href={href} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 12px', borderRadius:'7px', fontSize:'13px', fontWeight:500, color: active?'#fff':'rgba(255,255,255,.55)', background: active?'rgba(255,255,255,.12)':'transparent', textDecoration:'none', transition:'all .15s' }}>
-        <span style={{ fontSize:'14px' }}>{icon}</span>{label}
-      </Link>
-    )
-  }
-
-  const roleLabel: Record<string,string> = {
-    superadmin:'Super Admin', admin:'Admin', manager:'Manager', editor:'Editor', moderator:'Moderator', viewer:'Viewer'
-  }
-  const roleColor: Record<string,string> = {
-    superadmin:'#16a34a', admin:'#4f46e5', manager:'#ea580c', editor:'#0891b2', moderator:'#7c3aed', viewer:'#6b7280'
-  }
+  const sideW = collapsed ? '64px' : '240px'
 
   return (
-    <div style={{ display:'flex', minHeight:'100vh', fontFamily:'system-ui, sans-serif', background:'#f0f2f8' }}>
-      {/* Sidebar */}
-      <div style={{ width:'210px', background:'#1a1f3c', display:'flex', flexDirection:'column', position:'fixed', top:0, left:0, height:'100vh', zIndex:50, overflowY:'auto' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f1f5f9', fontFamily: 'Inter,-apple-system,sans-serif' }}>
+      
+      {/* Mobile overlay */}
+      {mobileOpen && <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 40 }} />}
+
+      {/* SIDEBAR */}
+      <aside style={{ width: sideW, minHeight: '100vh', background: '#0f172a', display: 'flex', flexDirection: 'column', position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 50, transition: 'width .2s', overflow: 'hidden' }}>
+        
         {/* Logo */}
-        <div style={{ padding:'16px 14px', borderBottom:'1px solid rgba(255,255,255,.08)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px' }}>
-            <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 5px', borderRadius:'4px' }}>CGP</div>
-            <span style={{ fontSize:'14px', fontWeight:700, color:'#fff' }}>Admin Panel</span>
-          </div>
-          <div style={{ fontSize:'10px', color:'rgba(255,255,255,.3)' }}>compressedgamespc.com</div>
+        <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>CGP</div>
+          {!collapsed && <div>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: '14px' }}>CompressedGamesPC</div>
+            <div style={{ color: '#64748b', fontSize: '11px' }}>Admin Panel</div>
+          </div>}
         </div>
 
         {/* Nav */}
-        <nav style={{ flex:1, padding:'10px 8px', display:'flex', flexDirection:'column', gap:'2px' }}>
-          <div style={{ fontSize:'9px', color:'rgba(255,255,255,.25)', textTransform:'uppercase', letterSpacing:'.6px', padding:'8px 8px 4px', fontWeight:600 }}>Content</div>
-          {link('/admin','Dashboard','📊')}
-          {canGames && link('/admin/games','All Games','🎮')}
-          {canGames && link('/admin/games/add','Add Game','➕')}
-          {isAdmin && link('/admin/pages','Pages Manager','📄')}
-
-          {canAppear && <>
-            <div style={{ fontSize:'9px', color:'rgba(255,255,255,.25)', textTransform:'uppercase', letterSpacing:'.6px', padding:'10px 8px 4px', fontWeight:600 }}>Customize</div>
-            {link('/admin/appearance','Appearance','🎨')}
-          </>}
-
-          <div style={{ fontSize:'9px', color:'rgba(255,255,255,.25)', textTransform:'uppercase', letterSpacing:'.6px', padding:'10px 8px 4px', fontWeight:600 }}>Tools</div>
-          {canStats && link('/admin/stats','Site Stats','📈')}
-          {canAds && link('/admin/ads','Ad Inserter','💰')}
-
-          {isAdmin && <>
-            <div style={{ fontSize:'9px', color:'rgba(255,255,255,.25)', textTransform:'uppercase', letterSpacing:'.6px', padding:'10px 8px 4px', fontWeight:600 }}>Site</div>
-            {canSeo && link('/admin/seo','SEO Settings','🔍')}
-            {isAdmin && link('/admin/permalinks','Permalink Settings','🔗')}
-            {isAdmin && link('/admin/settings','Site Settings','⚙️')}
-            {isAdmin && link('/admin/categories','Categories','📂')}
-            {canUsers && link('/admin/users','Users','👥')}
-          </>}
-
-          <div style={{ fontSize:'9px', color:'rgba(255,255,255,.25)', textTransform:'uppercase', letterSpacing:'.6px', padding:'10px 8px 4px', fontWeight:600 }}>Account</div>
-          {isSuperAdmin && link('/admin/backup','Backup & Restore','💾')}
-          {link('/admin/change-password','Change Password','🔒')}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+          {NAV.map(section => (
+            <div key={section.section}>
+              {!collapsed && <div style={{ padding: '12px 16px 4px', fontSize: '10px', fontWeight: 700, color: '#475569', letterSpacing: '1px' }}>{section.section}</div>}
+              {section.items.map(item => {
+                const active = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
+                return (
+                  <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: collapsed ? '10px 0' : '8px 12px', margin: '1px 8px', borderRadius: '8px', textDecoration: 'none', background: active ? 'rgba(99,102,241,.2)' : 'transparent', color: active ? '#818cf8' : '#94a3b8', justifyContent: collapsed ? 'center' : 'flex-start', transition: 'all .15s' }}>
+                    <span style={{ fontSize: '16px', flexShrink: 0 }}>{item.icon}</span>
+                    {!collapsed && <span style={{ fontSize: '13px', fontWeight: active ? 600 : 400 }}>{item.label}</span>}
+                    {!collapsed && (item as any).badge && <span style={{ marginLeft: 'auto', background: '#4f46e5', color: '#fff', fontSize: '10px', padding: '1px 6px', borderRadius: '10px' }}>{(item as any).badge}</span>}
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
         </nav>
 
-        {/* User info */}
-        <div style={{ padding:'12px', borderTop:'1px solid rgba(255,255,255,.08)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px' }}>
-            <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:'13px', fontWeight:700, flexShrink:0 }}>
-              {uname.charAt(0).toUpperCase()}
+        {/* Bottom user */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', padding: '12px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', borderRadius: '8px' }}>
+            <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
+              {user?.name?.[0] || 'A'}
             </div>
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:'12px', fontWeight:600, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>@{uname}</div>
-              <div style={{ fontSize:'10px', color: roleColor[role]||'#9ca3af', fontWeight:600 }}>{roleLabel[role]||role}</div>
-            </div>
+            {!collapsed && <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Admin'}</div>
+              <div style={{ color: '#64748b', fontSize: '11px' }}>{user?.role || 'super_admin'}</div>
+            </div>}
+            {!collapsed && <button onClick={logout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '16px', padding: '4px' }} title="Logout">\u{1F6AA}</button>}
           </div>
-          <div style={{ display:'flex', gap:'6px' }}>
-            <Link href="/" target="_blank" style={{ flex:1, background:'rgba(255,255,255,.06)', color:'rgba(255,255,255,.5)', borderRadius:'5px', padding:'5px', fontSize:'10px', textAlign:'center', textDecoration:'none' }}>View Site</Link>
-            <button onClick={logout} style={{ flex:1, background:'rgba(229,57,53,.15)', color:'#fca5a5', border:'none', borderRadius:'5px', padding:'5px', fontSize:'10px', cursor:'pointer', fontFamily:'inherit' }}>Logout</button>
-          </div>
+          <button onClick={() => setCollapsed(!collapsed)} style={{ width: '100%', background: 'rgba(255,255,255,.05)', border: 'none', cursor: 'pointer', color: '#64748b', padding: '6px', borderRadius: '6px', marginTop: '4px', fontSize: '12px' }}>
+            {collapsed ? '\u25B6' : '\u25C0 Collapse'}
+          </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Main content */}
-      <div style={{ marginLeft:'210px', flex:1, minHeight:'100vh' }}>
-        {children}
+      {/* MAIN */}
+      <div style={{ marginLeft: sideW, flex: 1, display: 'flex', flexDirection: 'column', transition: 'margin-left .2s', minWidth: 0 }}>
+        
+        {/* Top bar */}
+        <header style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 30 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '20px', cursor: 'pointer' }} onClick={() => setCollapsed(!collapsed)}>\u{1F4CB}</div>
+            <div style={{ color: '#64748b', fontSize: '13px' }}>
+              {pathname.replace('/admin', '').replace(/\//, ' / ').replace(/^\s*\/\s*/, '') || 'Dashboard'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Link href="/" target="_blank" style={{ color: '#64748b', textDecoration: 'none', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              \u{1F30D} View Site
+            </Link>
+            <div style={{ width: '1px', height: '20px', background: '#e2e8f0' }} />
+            <span style={{ color: '#374151', fontSize: '13px', fontWeight: 500 }}>{user?.name || 'Admin'}</span>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main style={{ flex: 1, padding: '24px', minWidth: 0 }}>
+          {children}
+        </main>
       </div>
     </div>
   )
