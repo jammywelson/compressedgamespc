@@ -1,34 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url)
-    const category = searchParams.get('category')
-    const status   = searchParams.get('status')
-    const search   = searchParams.get('q')
+  const { searchParams } = new URL(req.url)
+  const page = parseInt(searchParams.get('page') || '1')
+  const limit = parseInt(searchParams.get('limit') || '20')
+  const search = searchParams.get('search') || ''
+  const status = searchParams.get('status') || ''
+  const category = searchParams.get('category') || ''
+  const skip = (page - 1) * limit
 
-    const where: any = {}
-    if (category && category !== 'All') where.category = category
-    if (status)   where.status = status
-    if (search)   where.title  = { contains: search, mode: 'insensitive' }
+  const where: any = {}
+  if (search) where.OR = [{ title: { contains: search, mode: 'insensitive' } }, { slug: { contains: search, mode: 'insensitive' } }]
+  if (status) where.status = status
+  if (category) where.category = category
 
-    const games = await prisma.game.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(games)
-  } catch(e) {
-    return NextResponse.json([], { status: 200 })
-  }
+  const [games, total] = await Promise.all([
+    prisma.game.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { author: { select: { username: true } } } }),
+    prisma.game.count({ where })
+  ])
+  return NextResponse.json({ games, total, pages: Math.ceil(total / limit) })
 }
 
 export async function POST(req: NextRequest) {
+  const data = await req.json()
+  const slug = data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
   try {
-    const data = await req.json()
-    const game = await prisma.game.create({ data })
+    const game = await prisma.game.create({
+      data: { ...data, slug, downloadLinks: JSON.stringify(data.downloadLinks || []), publishedAt: data.status === 'published' ? new Date() : null }
+    })
     return NextResponse.json(game)
-  } catch(e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch(e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }
