@@ -14,7 +14,7 @@ model Game {
   slug          String    @unique
   category      String
   tags          String[]  @default([])
-  size          String
+  size          String    @default("")
   originalSize  String?
   status        String    @default("draft")
   featured      Boolean   @default(false)
@@ -24,7 +24,7 @@ model Game {
   excerpt       String?
   coverImage    String?
   gallery       String[]  @default([])
-  downloadLinks String[]  @default([])
+  downloadLinks Json      @default("[]")
   version       String?
   developer     String?
   publisher     String?
@@ -113,8 +113,6 @@ model Media {
   url        String
   type       String   @default("image")
   size       Int      @default(0)
-  width      Int?
-  height     Int?
   alt        String?
   folder     String   @default("/")
   uploadedBy String?
