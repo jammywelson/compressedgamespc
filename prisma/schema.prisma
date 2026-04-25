@@ -9,41 +9,41 @@ datasource db {
 }
 
 model Game {
-  id            String      @id @default(cuid())
+  id            String    @id @default(cuid())
   title         String
-  slug          String      @unique
+  slug          String    @unique
   category      String
-  tags          String[]    @default([])
+  tags          String[]  @default([])
   size          String
   originalSize  String?
-  status        String      @default("draft")
-  featured      Boolean     @default(false)
-  trending      Boolean     @default(false)
-  hot           Boolean     @default(false)
-  description   String?     @db.Text
+  status        String    @default("draft")
+  featured      Boolean   @default(false)
+  trending      Boolean   @default(false)
+  hot           Boolean   @default(false)
+  description   String?   @db.Text
   excerpt       String?
   coverImage    String?
-  gallery       String[]    @default([])
-  downloadLinks Json        @default("[]")
+  gallery       String[]  @default([])
+  downloadLinks String[]  @default([])
   version       String?
   developer     String?
   publisher     String?
   releaseYear   String?
-  platform      String      @default("PC")
-  systemReqs    String?     @db.Text
-  rating        Float       @default(4.0)
-  downloadCount Int         @default(0)
-  viewCount     Int         @default(0)
+  platform      String    @default("PC")
+  systemReqs    String?   @db.Text
+  rating        Float     @default(4.0)
+  downloadCount Int       @default(0)
+  viewCount     Int       @default(0)
   seoTitle      String?
   seoDesc       String?
   seoKeywords   String?
   altText       String?
   scheduledAt   DateTime?
   publishedAt   DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   authorId      String?
-  author        User?       @relation(fields: [authorId], references: [id])
+  author        User?     @relation(fields: [authorId], references: [id])
   comments      Comment[]
 }
 
@@ -108,17 +108,17 @@ model Comment {
 }
 
 model Media {
-  id        String   @id @default(cuid())
-  name      String
-  url       String
-  type      String   @default("image")
-  size      Int      @default(0)
-  width     Int?
-  height    Int?
-  alt       String?
-  folder    String   @default("/")
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  type       String   @default("image")
+  size       Int      @default(0)
+  width      Int?
+  height     Int?
+  alt        String?
+  folder     String   @default("/")
   uploadedBy String?
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 }
 
 model Setting {
@@ -138,15 +138,15 @@ model LoginLog {
 }
 
 model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action    String
-  resource  String?
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String
+  resource   String?
   resourceId String?
-  details   String?
-  ip        String?
-  createdAt DateTime @default(now())
+  details    String?
+  ip         String?
+  createdAt  DateTime @default(now())
 }
 
 model BlockedIp {
@@ -154,16 +154,5 @@ model BlockedIp {
   ip        String   @unique
   reason    String?
   blockedBy String?
-  createdAt DateTime @default(now())
-}
-
-model Analytics {
-  id        String   @id @default(cuid())
-  date      DateTime @default(now())
-  path      String
-  views     Int      @default(1)
-  country   String?
-  device    String?
-  referer   String?
   createdAt DateTime @default(now())
 }
