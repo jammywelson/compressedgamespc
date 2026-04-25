@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 export default function SeoPage() {
-  const [cfg, setCfg] = useState<Record<string,any>>({seoTitle:'',seoDesc:'',seoKeywords:'',ogImage:'',googleAnalytics:'',googleVerify:'',robotsTxt:'User-agent: *\nAllow: /'})
+  const [cfg, setCfg] = useState<Record<string,any>>({seoTitle:'',seoDesc:'',seoKeywords:'',ogImage:'',googleAnalytics:'',googleVerify:'',robotsTxt:'User-agent: *
+Allow: /'})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   useEffect(()=>{fetch('/api/settings?key=seo',{cache:'no-store'}).then(r=>r.json()).then((d:any)=>{if(d)setCfg(p=>({...p,...d}))}).catch(()=>{})},[])
@@ -13,29 +14,29 @@ export default function SeoPage() {
   return (
     <div style={{padding:'20px',maxWidth:'800px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-        <h1 style={{margin:0,fontSize:'22px',fontWeight:700}}>\u{1F50D} SEO Settings</h1>
-        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-          {saved&&<span style={{color:'#16a34a',fontWeight:700}}>\u2713 Saved!</span>}
+        <h1 style={{margin:0,fontSize:'22px',fontWeight:700}}>SEO Settings</h1>
+        <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+          {saved&&<span style={{color:'#16a34a',fontWeight:700}}>Saved!</span>}
           <button onClick={save} disabled={saving} style={{background:'#6366f1',color:'#fff',border:'none',borderRadius:'8px',padding:'10px 24px',fontWeight:700,cursor:'pointer'}}>{saving?'Saving...':'Save Changes'}</button>
         </div>
       </div>
       <div style={card}>
-        <h3 style={{margin:'0 0 16px',fontWeight:700}}>Site Meta Tags</h3>
-        <div style={{marginBottom:'14px'}}><label style={lbl}>Default SEO Title</label><input style={inp} value={cfg.seoTitle} onChange={e=>set('seoTitle',e.target.value)} placeholder="Site name - tagline" /></div>
-        <div style={{marginBottom:'14px'}}><label style={lbl}>Meta Description</label><textarea style={{...inp,height:'80px',resize:'vertical'}} value={cfg.seoDesc} onChange={e=>set('seoDesc',e.target.value)} /></div>
-        <div style={{marginBottom:'14px'}}><label style={lbl}>Keywords</label><input style={inp} value={cfg.seoKeywords} onChange={e=>set('seoKeywords',e.target.value)} placeholder="comma,separated,keywords" /></div>
-        <div><label style={lbl}>OG Image URL</label><input style={inp} value={cfg.ogImage} onChange={e=>set('ogImage',e.target.value)} placeholder="https://..." /></div>
+        <h3 style={{margin:'0 0 16px',fontWeight:700}}>Meta Tags</h3>
+        <div style={{marginBottom:'12px'}}><label style={lbl}>Default SEO Title</label><input style={inp} value={cfg.seoTitle} onChange={(e:any)=>set('seoTitle',e.target.value)} placeholder="Site name - tagline"/></div>
+        <div style={{marginBottom:'12px'}}><label style={lbl}>Meta Description</label><textarea style={{...inp,height:'80px',resize:'vertical'}} value={cfg.seoDesc} onChange={(e:any)=>set('seoDesc',e.target.value)}/></div>
+        <div style={{marginBottom:'12px'}}><label style={lbl}>Keywords</label><input style={inp} value={cfg.seoKeywords} onChange={(e:any)=>set('seoKeywords',e.target.value)} placeholder="comma,separated"/></div>
+        <div><label style={lbl}>OG Image URL</label><input style={inp} value={cfg.ogImage} onChange={(e:any)=>set('ogImage',e.target.value)} placeholder="https://..."/></div>
       </div>
       <div style={card}>
-        <h3 style={{margin:'0 0 16px',fontWeight:700}}>Google Integration</h3>
-        <div style={{marginBottom:'14px'}}><label style={lbl}>Google Analytics ID</label><input style={inp} value={cfg.googleAnalytics} onChange={e=>set('googleAnalytics',e.target.value)} placeholder="G-XXXXXXXXXX" /></div>
-        <div><label style={lbl}>Google Site Verification</label><input style={inp} value={cfg.googleVerify} onChange={e=>set('googleVerify',e.target.value)} /></div>
+        <h3 style={{margin:'0 0 16px',fontWeight:700}}>Google</h3>
+        <div style={{marginBottom:'12px'}}><label style={lbl}>Analytics ID</label><input style={inp} value={cfg.googleAnalytics} onChange={(e:any)=>set('googleAnalytics',e.target.value)} placeholder="G-XXXXXXXXXX"/></div>
+        <div><label style={lbl}>Site Verification</label><input style={inp} value={cfg.googleVerify} onChange={(e:any)=>set('googleVerify',e.target.value)}/></div>
       </div>
       <div style={card}>
         <h3 style={{margin:'0 0 12px',fontWeight:700}}>Robots.txt</h3>
-        <textarea style={{...inp,height:'140px',fontFamily:'monospace',fontSize:'13px'}} value={cfg.robotsTxt} onChange={e=>set('robotsTxt',e.target.value)} />
+        <textarea style={{...inp,height:'140px',fontFamily:'monospace',fontSize:'13px'}} value={cfg.robotsTxt} onChange={(e:any)=>set('robotsTxt',e.target.value)}/>
       </div>
-      <button onClick={save} disabled={saving} style={{background:'#6366f1',color:'#fff',border:'none',borderRadius:'10px',padding:'14px',width:'100%',fontWeight:700,cursor:'pointer',fontSize:'15px'}}>{saving?'Saving...':'\u{1F4BE} Save SEO Settings'}</button>
+      <button onClick={save} disabled={saving} style={{background:'#6366f1',color:'#fff',border:'none',borderRadius:'10px',padding:'14px',width:'100%',fontWeight:700,cursor:'pointer',fontSize:'15px'}}>{saving?'Saving...':'Save SEO Settings'}</button>
     </div>
   )
 }
