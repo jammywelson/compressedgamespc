@@ -1,5 +1,3 @@
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
@@ -37,7 +35,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Navbar />
+      
       <main style={{ maxWidth:'1200px', margin:'0 auto', padding:'12px 16px' }}>
         {games.length === 0 ? (
           <>
@@ -51,7 +49,7 @@ export default async function HomePage() {
                 Direct download links. No surveys. Maximum compression!
               </p>
               <Link href="/games" style={{ background:'#4f46e5', color:'#fff', borderRadius:'8px', padding:'12px 28px', fontSize:'14px', fontWeight:700, display:'inline-block' }}>
-                Browse All Games →
+                Browse All Games â
               </Link>
             </div>
             {/* Stats */}
@@ -95,19 +93,19 @@ export default async function HomePage() {
                   <div style={{ position:'relative', zIndex:1 }}>
                     <div style={{ display:'flex', gap:'6px', marginBottom:'8px', flexWrap:'wrap' as any }}>
                       <span style={{ background:'#e53935', color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'4px' }}>Featured</span>
-                      <span style={{ background:'rgba(79,70,229,.8)', color:'#fff', fontSize:'10px', padding:'2px 8px', borderRadius:'4px' }}>✓ Compressed</span>
+                      <span style={{ background:'rgba(79,70,229,.8)', color:'#fff', fontSize:'10px', padding:'2px 8px', borderRadius:'4px' }}>â Compressed</span>
                     </div>
                     <h1 style={{ fontSize:'clamp(18px,4vw,28px)', fontWeight:700, color:'#fff', lineHeight:1.1, marginBottom:'6px' }}>{featured.title}</h1>
                     <p style={{ color:'rgba(255,255,255,.6)', fontSize:'13px', marginBottom:'12px' }}>
-                      {featured.category} · <span style={{ color:'#86efac', fontWeight:600 }}>{featured.size}</span>
+                      {featured.category} Â· <span style={{ color:'#86efac', fontWeight:600 }}>{featured.size}</span>
                     </p>
                     <span style={{ background:'#4f46e5', color:'#fff', borderRadius:'8px', padding:'8px 18px', fontSize:'13px', fontWeight:700, display:'inline-block' }}>
-                      ⬇ Download Now
+                      â¬ Download Now
                     </span>
                   </div>
                 </Link>
               )}
-              {/* Side games — show on desktop only via CSS */}
+              {/* Side games â show on desktop only via CSS */}
               <style>{`@media(min-width:640px){.hero-grid{display:grid!important;grid-template-columns:1fr 240px!important;}.hero-side{display:flex!important;}}`}</style>
             </div>
 
@@ -131,7 +129,7 @@ export default async function HomePage() {
               <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
                 <div style={{ width:'4px', height:'16px', background:'#4f46e5', borderRadius:'2px' }}/>
                 <h2 style={{ fontSize:'16px', fontWeight:700, color:'#111827' }}>New Games</h2>
-                <Link href="/games" style={{ marginLeft:'auto', fontSize:'12px', color:'#4f46e5' }}>View All →</Link>
+                <Link href="/games" style={{ marginLeft:'auto', fontSize:'12px', color:'#4f46e5' }}>View All â</Link>
               </div>
               <div style={{ display:'flex', gap:'8px', overflowX:'auto' as any, paddingBottom:'6px' }}>
                 <style>{`.new-scroll::-webkit-scrollbar{display:none}`}</style>
@@ -178,7 +176,7 @@ export default async function HomePage() {
                   <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
                     <div style={{ width:'4px', height:'16px', background:'linear-gradient(#16a34a,#0891b2)', borderRadius:'2px' }}/>
                     <h2 style={{ fontSize:'16px', fontWeight:700, color:'#111827' }}>Latest Games</h2>
-                    <Link href="/games" style={{ marginLeft:'auto', fontSize:'12px', color:'#4f46e5' }}>View All →</Link>
+                    <Link href="/games" style={{ marginLeft:'auto', fontSize:'12px', color:'#4f46e5' }}>View All â</Link>
                   </div>
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(110px,1fr))', gap:'8px' }}>
                     {games.slice(0,8).map(g=>(
@@ -202,7 +200,7 @@ export default async function HomePage() {
           </>
         )}
       </main>
-      <Footer />
+      
     </>
   )
 }
