@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-const NC = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
+const NC = { 'Cache-Control': 'no-store, no-cache', 'Pragma': 'no-cache' }
 
 export async function GET(req: NextRequest) {
   const key = new URL(req.url).searchParams.get('key')
   try {
     if (key) {
       const s = await prisma.setting.findUnique({ where: { key } })
-      return NextResponse.json(s ? JSON.parse(s.value) : null, { headers: NC })
+      if (!s) return NextResponse.json(null, { headers: NC })
+      try { return NextResponse.json(JSON.parse(s.value), { headers: NC }) }
+      catch { return NextResponse.json(s.value, { headers: NC }) }
     }
     const all = await prisma.setting.findMany()
     const obj: Record<string,any> = {}
@@ -18,14 +20,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { key, value } = await req.json()
   try {
-    const { key, value } = await req.json()
     await prisma.setting.upsert({
       where: { key },
       update: { value: JSON.stringify(value) },
       create: { key, value: JSON.stringify(value) },
     })
-    return NextResponse.json({ ok: true }, { headers: NC })
+    return NextResponse.json({ ok: true })
   } catch(e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
