@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    await prisma.game.delete({ where: { id: params.id } })
-    return NextResponse.json({ success: true })
-  } catch(e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
-  }
+export async function GET(_req: NextRequest, {params}:{params:{id:string}}) {
+  const g = await prisma.game.findUnique({where:{id:params.id}})
+  return NextResponse.json(g)
 }
-
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const data = await req.json()
-    const game = await prisma.game.update({ where: { id: params.id }, data })
-    return NextResponse.json(game)
-  } catch(e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
-  }
+export async function PATCH(req: NextRequest, {params}:{params:{id:string}}) {
+  const data = await req.json()
+  const g = await prisma.game.update({where:{id:params.id},data:{...data,updatedAt:new Date()}})
+  return NextResponse.json(g)
+}
+export async function DELETE(_req: NextRequest, {params}:{params:{id:string}}) {
+  await prisma.game.delete({where:{id:params.id}})
+  return NextResponse.json({ok:true})
 }
