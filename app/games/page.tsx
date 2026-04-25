@@ -1,5 +1,3 @@
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
@@ -31,12 +29,12 @@ export default async function GamesPage({ searchParams }: { searchParams: { cate
 
   return (
     <>
-      <Navbar />
+      
       <main style={{ maxWidth:'1200px', margin:'0 auto', padding:'16px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px', flexWrap:'wrap' as any }}>
           <div style={{ width:'4px', height:'18px', background:'#4f46e5', borderRadius:'2px' }}/>
           <h1 style={{ fontSize:'20px', fontWeight:700, color:'#111827' }}>
-            {q ? `Search: "${q}"` : status === 'hot' ? '🔥 Hot Games' : cat === 'All' ? 'All Games' : cat}
+            {q ? `Search: "${q}"` : status === 'hot' ? 'ð¥ Hot Games' : cat === 'All' ? 'All Games' : cat}
           </h1>
           <span style={{ fontSize:'13px', color:'#6b7280' }}>{games.length} games</span>
         </div>
@@ -53,7 +51,7 @@ export default async function GamesPage({ searchParams }: { searchParams: { cate
 
         {games.length === 0 ? (
           <div style={{ textAlign:'center' as any, padding:'60px 20px', background:'#fff', borderRadius:'12px', border:'1px solid #e5e7eb' }}>
-            <div style={{ fontSize:'48px', marginBottom:'12px' }}>🎮</div>
+            <div style={{ fontSize:'48px', marginBottom:'12px' }}>ð®</div>
             <div style={{ fontSize:'18px', fontWeight:700, color:'#111827', marginBottom:'8px' }}>
               {q ? `"${q}" nahi mila` : 'Koi game nahi hai abhi'}
             </div>
@@ -80,7 +78,7 @@ export default async function GamesPage({ searchParams }: { searchParams: { cate
           </div>
         )}
       </main>
-      <Footer />
+      
     </>
   )
 }
