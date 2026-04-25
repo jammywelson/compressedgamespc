@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 
 const CATS = ['Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Sci-Fi','Survival','Puzzle','Old Games']
 
-const DEFAULTS = {
+const DEFAULTS: Record<string,any> = {
   footerBg: '#1a1f3c',
   footerText: '© 2026 CompressedGamesPC.com',
   footerAbout: 'Your #1 source for highly compressed PC games. Free direct download links, no surveys.',
@@ -17,112 +17,92 @@ const DEFAULTS = {
 }
 
 export default function Footer() {
-  const [cfg, setCfg] = useState(DEFAULTS)
+  const [cfg, setCfg] = useState<Record<string,any>>(DEFAULTS)
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('cgpc_appearance')
-      if (saved) setCfg({ ...DEFAULTS, ...JSON.parse(saved) })
-    } catch(e) {}
+    fetch('/api/settings?key=appearance', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((d: any) => { if (d && typeof d === 'object') setCfg(p => ({ ...p, ...d })) })
+      .catch(() => {})
   }, [])
 
-  const [footerPages, setFooterPages] = useState<any[]>([])
-  useEffect(() => {
-    fetch('/api/settings?key=pages', { cache:'no-store' })
-      .then(r=>r.json())
-      .then((d:any)=>{ if(d&&Array.isArray(d)) setFooterPages(d.filter((p:any)=>p.showFooter&&p.status==='published')) })
-      .catch(()=>{})
-  }, [])
+  const pages: [string, string, boolean][] = [
+    ['/about', 'About Us', cfg.showAbout],
+    ['/contact', 'Contact', cfg.showContact],
+    ['/privacy', 'Privacy Policy', cfg.showPrivacy],
+    ['/disclaimer', 'Disclaimer', cfg.showDisclaimer],
+    ['/dmca', 'DMCA', cfg.showDmca],
+    ['/terms', 'Terms of Service', cfg.showTerms],
+  ]
 
-  const socials = [
-    { label:'Facebook', href: cfg.socialFacebook },
-    { label:'Telegram', href: cfg.socialTelegram },
-    { label:'YouTube',  href: cfg.socialYoutube  },
-    { label:'Discord',  href: cfg.socialDiscord  },
-  ].filter(s => s.href)
+  const cats1 = CATS.slice(0, 6)
+  const cats2 = CATS.slice(6)
+
+  const colStyle: any = { minWidth: '150px' }
+  const headStyle: any = { color: '#fff', fontWeight: 700, fontSize: '15px', marginBottom: '14px' }
+  const linkStyle: any = { color: '#94a3b8', textDecoration: 'none', fontSize: '13px', display: 'block', marginBottom: '8px', transition: 'color .2s' }
 
   return (
-    <div style={{ background: cfg.footerBg, color:'rgba(255,255,255,.8)', marginTop:'40px' }}>
-      <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'32px 16px 20px' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))', gap:'24px', marginBottom:'24px' }}>
+    <footer style={{ background: cfg.footerBg, padding: '40px 20px 20px', marginTop: 'auto' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' as any, marginBottom: '32px' }}>
 
-          {/* Brand */}
           {cfg.footerShowBrand && (
-            <div style={{ gridColumn:'span 2' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
-                <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'#fff', fontSize:'11px', fontWeight:700, padding:'2px 6px', borderRadius:'4px' }}>CGP</div>
-                <span style={{ fontSize:'16px', fontWeight:700, color:'#fff' }}>{cfg.siteName}</span>
+            <div style={{ ...colStyle, flex: '1.5', minWidth: '200px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '14px' }}>CGP</div>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: '16px' }}>{cfg.siteName}</span>
               </div>
-              <p style={{ fontSize:'12px', color:'rgba(255,255,255,.45)', lineHeight:1.7, marginBottom:'12px', maxWidth:'260px' }}>
-                {cfg.footerAbout}
-              </p>
+              <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.6', margin: '0 0 16px' }}>{cfg.footerAbout}</p>
               {cfg.footerShowSocial && (
-                <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' as any }}>
-                  {socials.length > 0 ? socials.map(s => (
-                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                      style={{ background:'rgba(255,255,255,.08)', borderRadius:'4px', padding:'4px 10px', fontSize:'11px', color:'rgba(255,255,255,.55)' }}>
-                      {s.label}
-                    </a>
-                  )) : ['Facebook','Telegram','YouTube','Discord'].map(s => (
-                    <span key={s} style={{ background:'rgba(255,255,255,.08)', borderRadius:'4px', padding:'4px 10px', fontSize:'11px', color:'rgba(255,255,255,.35)' }}>{s}</span>
-                  ))}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as any }}>
+                  {cfg.socialFacebook && <a href={cfg.socialFacebook} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>Facebook</a>}
+                  {cfg.socialTelegram && <a href={cfg.socialTelegram} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>Telegram</a>}
+                  {cfg.socialYoutube && <a href={cfg.socialYoutube} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>YouTube</a>}
+                  {cfg.socialDiscord && <a href={cfg.socialDiscord} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>Discord</a>}
                 </div>
               )}
             </div>
           )}
 
-          {/* Categories 1 */}
           {cfg.footerShowCats1 && (
-            <div>
-              <div style={{ fontSize:'12px', fontWeight:700, color:'#fff', marginBottom:'10px', textTransform:'uppercase' as any, letterSpacing:'.5px' }}>Categories</div>
-              <div style={{ display:'flex', flexDirection:'column' as any, gap:'6px' }}>
-                {CATS.slice(0,6).map(c => (
-                  <Link key={c} href={`/games?category=${encodeURIComponent(c)}`} style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>{c}</Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Categories 2 */}
-          {cfg.footerShowCats2 && (
-            <div>
-              <div style={{ fontSize:'12px', fontWeight:700, color:'#fff', marginBottom:'10px', textTransform:'uppercase' as any, letterSpacing:'.5px' }}>More</div>
-              <div style={{ display:'flex', flexDirection:'column' as any, gap:'6px' }}>
-                {CATS.slice(6).map(c => (
-                  <Link key={c} href={`/games?category=${encodeURIComponent(c)}`} style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>{c}</Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quick Links */}
-          {cfg.footerShowLinks && (
-            <div>
-              <div style={{ fontSize:'12px', fontWeight:700, color:'#fff', marginBottom:'10px', textTransform:'uppercase' as any, letterSpacing:'.5px' }}>Quick Links</div>
-              <div style={{ display:'flex', flexDirection:'column' as any, gap:'6px' }}>
-                <Link href="/"                 style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>Home</Link>
-                <Link href="/games"            style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>All Games</Link>
-                <Link href="/games?status=hot" style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>Hot Games</Link>
-                {footerPages.map((p:any) => (
-                  <Link key={p.slug} href={`/${p.slug}`} style={{ fontSize:'12px', color:'rgba(255,255,255,.4)' }}>{p.title}</Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Copyright */}
-        {cfg.footerShowCopyright && (
-          <div style={{ borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:'16px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap' as any, gap:'8px' }}>
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,.25)' }}>{cfg.footerText}</span>
-            <div style={{ display:'flex', gap:'12px', flexWrap:'wrap' as any }}>
-              {footerPages.slice(0,4).map((p:any) => (
-                <Link key={p.slug} href={`/${p.slug}`} style={{ fontSize:'11px', color:'rgba(255,255,255,.25)' }}>{p.title}</Link>
+            <div style={colStyle}>
+              <div style={headStyle}>Games</div>
+              {cats1.map(c => (
+                <Link key={c} href={'/games?category=' + encodeURIComponent(c)} style={linkStyle}>{c}</Link>
               ))}
             </div>
+          )}
+
+          {cfg.footerShowCats2 && (
+            <div style={colStyle}>
+              <div style={headStyle}>More Games</div>
+              {cats2.map(c => (
+                <Link key={c} href={'/games?category=' + encodeURIComponent(c)} style={linkStyle}>{c}</Link>
+              ))}
+            </div>
+          )}
+
+          {cfg.footerShowLinks && (
+            <div style={colStyle}>
+              <div style={headStyle}>Quick Links</div>
+              <Link href="/games" style={linkStyle}>All Games</Link>
+              <Link href="/games?status=hot" style={linkStyle}>Hot Games</Link>
+              <Link href="/games?status=new" style={linkStyle}>New Games</Link>
+              {pages.filter(([,, show]) => show).map(([href, label]) => (
+                <Link key={href} href={href} style={linkStyle}>{label}</Link>
+              ))}
+            </div>
+          )}
+
+        </div>
+
+        {cfg.footerShowCopyright && (
+          <div style={{ borderTop: '1px solid rgba(255,255,255,.1)', paddingTop: '20px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+            {cfg.footerText}
           </div>
         )}
       </div>
-    </div>
+    </footer>
   )
 }
