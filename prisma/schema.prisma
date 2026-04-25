@@ -1,13 +1,11 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-
 model Game {
   id            String    @id @default(cuid())
   title         String
@@ -46,20 +44,18 @@ model Game {
   author        User?     @relation(fields: [authorId], references: [id])
   comments      Comment[]
 }
-
 model Category {
   id          String   @id @default(cuid())
   name        String   @unique
   slug        String   @unique
   description String?
   icon        String?
-  color       String?
+  color       String   @default("#6366f1")
   order       Int      @default(0)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
-
 model Tag {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -67,7 +63,6 @@ model Tag {
   color     String?
   createdAt DateTime @default(now())
 }
-
 model User {
   id           String    @id @default(cuid())
   username     String    @unique
@@ -91,7 +86,6 @@ model User {
   loginLogs    LoginLog[]
   activityLogs ActivityLog[]
 }
-
 model Comment {
   id        String   @id @default(cuid())
   gameId    String
@@ -106,7 +100,6 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
 model Media {
   id         String   @id @default(cuid())
   name       String
@@ -118,13 +111,11 @@ model Media {
   uploadedBy String?
   createdAt  DateTime @default(now())
 }
-
 model Setting {
   key       String   @id
   value     String   @db.Text
   updatedAt DateTime @updatedAt
 }
-
 model LoginLog {
   id        String   @id @default(cuid())
   userId    String
@@ -134,7 +125,6 @@ model LoginLog {
   success   Boolean  @default(true)
   createdAt DateTime @default(now())
 }
-
 model ActivityLog {
   id         String   @id @default(cuid())
   userId     String
@@ -146,7 +136,6 @@ model ActivityLog {
   ip         String?
   createdAt  DateTime @default(now())
 }
-
 model BlockedIp {
   id        String   @id @default(cuid())
   ip        String   @unique
