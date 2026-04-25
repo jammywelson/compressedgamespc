@@ -421,7 +421,7 @@ export default function AppearancePage() {
                     <div style={{fontSize:'13px',fontWeight:600,color:'#111827'}}>{f.l}</div>
                     <div style={{fontSize:'11px',color:'#6b7280',marginTop:'1px'}}>{f.d}</div>
                   </div>
-                  <Toggle val={true} onChange={v=>upd(f.k,v)}/>
+                  <Toggle val={(s as any)[f.k]!==false} onChange={v=>upd(f.k,v)}/>
                 </div>
               ))}
             </div>
