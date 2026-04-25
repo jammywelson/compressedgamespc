@@ -3,23 +3,23 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const sp = new URL(req.url).searchParams
-  const page=parseInt(sp.get('page')||'1'), limit=parseInt(sp.get('limit')||'20'), skip=(page-1)*limit
-  const search=sp.get('search')||'', status=sp.get('status')||'', category=sp.get('category')||''
+  const page = parseInt(sp.get('page')||'1'), limit = parseInt(sp.get('limit')||'20')
+  const search = sp.get('search')||'', status = sp.get('status')||'', category = sp.get('category')||''
   const where: any = {}
-  if (search) where.OR=[{title:{contains:search,mode:'insensitive'}},{slug:{contains:search,mode:'insensitive'}}]
-  if (status) where.status=status
-  if (category) where.category=category
-  const [games,total] = await Promise.all([
-    prisma.game.findMany({where,skip,take:limit,orderBy:{createdAt:'desc'},include:{author:{select:{username:true}}}}),
-    prisma.game.count({where})
+  if (search) where.OR = [{ title:{contains:search,mode:'insensitive'} },{ slug:{contains:search,mode:'insensitive'} }]
+  if (status) where.status = status
+  if (category) where.category = category
+  const [games, total] = await Promise.all([
+    prisma.game.findMany({ where, skip:(page-1)*limit, take:limit, orderBy:{createdAt:'desc'}, include:{author:{select:{username:true}}} }),
+    prisma.game.count({ where })
   ])
-  return NextResponse.json({games,total,pages:Math.ceil(total/limit)})
+  return NextResponse.json({ games, total, pages: Math.ceil(total/limit) })
 }
 export async function POST(req: NextRequest) {
   const data = await req.json()
   const slug = data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')
   try {
-    const game = await prisma.game.create({ data:{...data,slug,downloadLinks:JSON.stringify(data.downloadLinks||[]),publishedAt:data.status==='published'?new Date():null} })
+    const game = await prisma.game.create({ data: { ...data, slug, downloadLinks: JSON.stringify(data.downloadLinks||[]), publishedAt: data.status==='published'?new Date():null } })
     return NextResponse.json(game)
-  } catch(e) { return NextResponse.json({error:String(e)},{status:500}) }
+  } catch(e) { return NextResponse.json({ error: String(e) }, { status: 500 }) }
 }
