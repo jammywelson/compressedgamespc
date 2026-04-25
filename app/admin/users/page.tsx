@@ -1,270 +1,99 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-const ALL_PERMS = [
-  { id:'view_games',    label:'Games Dekh Sakta',    group:'Games' },
-  { id:'add_games',     label:'Games Add Kar Sakta', group:'Games' },
-  { id:'edit_games',    label:'Games Edit Kar Sakta',group:'Games' },
-  { id:'delete_games',  label:'Games Delete Kar Sakta',group:'Games' },
-  { id:'publish_games', label:'Games Publish Kar Sakta',group:'Games' },
-  { id:'view_comments', label:'Comments Dekh Sakta', group:'Comments' },
-  { id:'delete_comments',label:'Comments Delete Kar Sakta',group:'Comments' },
-  { id:'manage_cats',   label:'Categories Manage Kar Sakta',group:'Site' },
-  { id:'view_stats',    label:'Stats Dekh Sakta',    group:'Site' },
-  { id:'manage_ads',    label:'Ads Manage Kar Sakta',group:'Site' },
-  { id:'manage_users',  label:'Users Manage Kar Sakta',group:'Users' },
-]
-
-const ROLE_PRESETS: Record<string,{ label:string; color:string; bg:string; permissions:string[] }> = {
-  viewer:    { label:'Viewer',    color:'#6b7280', bg:'#f9fafb', permissions:['view_games'] },
-  editor:    { label:'Editor',    color:'#0891b2', bg:'#ecfeff', permissions:['view_games','add_games','edit_games'] },
-  moderator: { label:'Moderator', color:'#7c3aed', bg:'#f5f3ff', permissions:['view_games','view_comments','delete_comments','view_stats'] },
-  manager:   { label:'Manager',   color:'#ea580c', bg:'#fff7ed', permissions:['view_games','add_games','edit_games','delete_games','publish_games','view_comments','delete_comments','manage_cats','view_stats'] },
-  admin:     { label:'Admin',     color:'#4f46e5', bg:'#eef2ff', permissions:ALL_PERMS.map(p=>p.id) },
-}
-
-const SI: React.CSSProperties = { width:'100%', background:'#fff', border:'1px solid #e5e7eb', borderRadius:'7px', padding:'9px 12px', color:'#111827', fontSize:'13px', outline:'none', fontFamily:'inherit' }
-const LB: React.CSSProperties = { fontSize:'12px', color:'#374151', fontWeight:500, marginBottom:'5px', display:'block' }
-
-const Toggle = ({val,onChange}:{val:boolean;onChange:(v:boolean)=>void}) => (
-  <div style={{width:'44px',height:'24px',borderRadius:'12px',background:val?'#4f46e5':'#d1d5db',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}} onClick={()=>onChange(!val)}>
-    <div style={{position:'absolute',top:'4px',left:val?'23px':'4px',width:'16px',height:'16px',borderRadius:'50%',background:'#fff',transition:'left .2s'}}/>
-  </div>
-)
+const ROLES = ['super_admin','admin','moderator','editor','viewer']
+const ROLE_COLORS: any = { super_admin:'#7c3aed', admin:'#4f46e5', moderator:'#0891b2', editor:'#059669', viewer:'#64748b' }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
-  const [delId, setDelId] = useState<string|null>(null)
-  const [editUser, setEditUser] = useState<any|null>(null)
-  const [msg, setMsg] = useState('')
-  const [msgType, setMsgType] = useState<'ok'|'err'>('ok')
-  const [selRole, setSelRole] = useState('editor')
-  const [selPerms, setSelPerms] = useState<string[]>(ROLE_PRESETS.editor.permissions)
-  const [form, setForm] = useState({ name:'', username:'', email:'', password:'' })
+  const [form, setForm] = useState({ name:'',username:'',email:'',password:'',role:'editor' })
+  const [saving, setSaving] = useState(false)
 
-  const load = async () => {
+  useEffect(() => { loadUsers() }, [])
+
+  const loadUsers = () => {
     setLoading(true)
-    try {
-      const r = await fetch('/api/users')
-      const d = await r.json()
-      setUsers(Array.isArray(d) ? d : [])
-    } catch(e) { setUsers([]) }
-    setLoading(false)
+    fetch('/api/admin/users').then(r=>r.json()).then(d=>setUsers(d.users||[])).finally(()=>setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
-
-  const showMsg = (m:string, t:'ok'|'err'='ok') => { setMsg(m); setMsgType(t); setTimeout(()=>setMsg(''),3000) }
+  const set = (k:string,v:any) => setForm(p=>({...p,[k]:v}))
 
   const addUser = async () => {
-    if (!form.name||!form.username||!form.email||!form.password) { showMsg('Sab fields bharo','err'); return }
-    if (form.password.length < 6) { showMsg('Password min 6 chars','err'); return }
-    try {
-      const r = await fetch('/api/users', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ name:form.name, username:form.username, email:form.email, password:form.password, role:selRole, permissions:selPerms })
-      })
-      if (!r.ok) { const e=await r.json(); showMsg(e.error||'Error','err'); return }
-      setForm({name:'',username:'',email:'',password:''})
-      setShowAdd(false)
-      showMsg('✓ User add ho gaya!')
-      load()
-    } catch(e:any) { showMsg(e.message,'err') }
+    if (!form.name||!form.email||!form.password) return alert('Name, email and password required')
+    setSaving(true)
+    const r = await fetch('/api/admin/users', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(form) })
+    const d = await r.json()
+    if (r.ok) { setShowAdd(false); setForm({name:'',username:'',email:'',password:'',role:'editor'}); loadUsers() }
+    else alert(d.error || 'Failed')
+    setSaving(false)
+  }
+
+  const changeRole = async (id:string, role:string) => {
+    await fetch('/api/admin/users/'+id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({role}) })
+    loadUsers()
+  }
+
+  const toggleActive = async (id:string, active:boolean) => {
+    await fetch('/api/admin/users/'+id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({active:!active}) })
+    loadUsers()
   }
 
   const deleteUser = async (id:string) => {
-    await fetch(`/api/users/${id}`, { method:'DELETE' })
-    setDelId(null); showMsg('User delete ho gaya'); load()
+    if (!confirm('Delete this user?')) return
+    await fetch('/api/admin/users/'+id, { method:'DELETE' })
+    loadUsers()
   }
 
-  const toggleStatus = async (u:any) => {
-    await fetch(`/api/users/${u.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:u.status==='active'?'inactive':'active'}) })
-    load()
-  }
-
-  const saveEdit = async () => {
-    if (!editUser) return
-    await fetch(`/api/users/${editUser.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(editUser) })
-    setEditUser(null); showMsg('✓ User updated!'); load()
-  }
-
-  const groups = [...new Set(ALL_PERMS.map(p=>p.group))]
-
-  const PermGrid = ({ perms, toggle }: { perms:string[]; toggle:(id:string)=>void }) => (
-    <div style={{display:'flex',flexDirection:'column' as any,gap:'10px'}}>
-      {groups.map(grp=>(
-        <div key={grp}>
-          <div style={{fontSize:'11px',color:'#9ca3af',textTransform:'uppercase' as any,letterSpacing:'.5px',marginBottom:'6px',fontWeight:600}}>{grp}</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px'}}>
-            {ALL_PERMS.filter(p=>p.group===grp).map(p=>{
-              const on=perms.includes(p.id)
-              return (
-                <div key={p.id} onClick={()=>toggle(p.id)} style={{background:on?'#eef2ff':'#f9fafb',border:`1px solid ${on?'#c7d2fe':'#e5e7eb'}`,borderRadius:'6px',padding:'7px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:'7px'}}>
-                  <div style={{width:'16px',height:'16px',borderRadius:'3px',background:on?'#4f46e5':'#fff',border:`1.5px solid ${on?'#4f46e5':'#d1d5db'}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    {on&&<span style={{color:'#fff',fontSize:'10px',fontWeight:700}}>✓</span>}
-                  </div>
-                  <span style={{fontSize:'12px',color:on?'#3730a3':'#374151',fontWeight:on?600:400}}>{p.label}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+  const inp: any = { border:'1px solid #e2e8f0', borderRadius:'8px', padding:'8px 12px', fontSize:'14px', outline:'none', width:'100%', boxSizing:'border-box' }
+  const lbl: any = { display:'block', fontSize:'13px', fontWeight:600, color:'#374151', marginBottom:'6px' }
 
   return (
-    <div style={{background:'#f0f2f8',minHeight:'100vh'}}>
-      {delId && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'#fff',borderRadius:'12px',padding:'24px',width:'340px',textAlign:'center' as any}}>
-            <div style={{fontSize:'32px',marginBottom:'8px'}}>🗑</div>
-            <div style={{fontSize:'17px',fontWeight:700,color:'#111827',marginBottom:'8px'}}>Delete User?</div>
-            <div style={{fontSize:'13px',color:'#6b7280',marginBottom:'18px'}}>"{users.find(u=>u.id===delId)?.name}" delete hoga</div>
-            <div style={{display:'flex',gap:'10px'}}>
-              <button onClick={()=>setDelId(null)} style={{flex:1,background:'#f3f4f6',border:'none',borderRadius:'8px',padding:'10px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
-              <button onClick={()=>deleteUser(delId)} style={{flex:1,background:'#e53935',color:'#fff',border:'none',borderRadius:'8px',padding:'10px',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {editUser && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
-          <div style={{background:'#fff',borderRadius:'12px',width:'100%',maxWidth:'600px',maxHeight:'88vh',overflow:'auto',boxShadow:'0 25px 60px rgba(0,0,0,.25)'}}>
-            <div style={{padding:'16px 20px',borderBottom:'1px solid #e5e7eb',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'#fff',zIndex:1}}>
-              <div style={{fontSize:'16px',fontWeight:700,color:'#111827'}}>Edit — {editUser.name}</div>
-              <div style={{display:'flex',gap:'8px'}}>
-                <button onClick={()=>setEditUser(null)} style={{background:'#f3f4f6',border:'none',borderRadius:'7px',padding:'7px 14px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
-                <button onClick={saveEdit} style={{background:'#4f46e5',color:'#fff',border:'none',borderRadius:'7px',padding:'7px 16px',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Save</button>
-              </div>
-            </div>
-            <div style={{padding:'20px',display:'grid',gap:'14px'}}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-                <div><label style={LB}>Name</label><input style={SI} value={editUser.name} onChange={e=>setEditUser({...editUser,name:e.target.value})}/></div>
-                <div><label style={LB}>Email</label><input style={SI} value={editUser.email} onChange={e=>setEditUser({...editUser,email:e.target.value})}/></div>
-              </div>
-              <div><label style={LB}>Status</label>
-                <select style={{...SI,cursor:'pointer',width:'200px'}} value={editUser.status} onChange={e=>setEditUser({...editUser,status:e.target.value})}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive (Disabled)</option>
-                </select>
-              </div>
-              <div><label style={LB}>Role Preset</label>
-                <div style={{display:'flex',gap:'6px',flexWrap:'wrap' as any}}>
-                  {Object.entries(ROLE_PRESETS).map(([k,v])=>(
-                    <button key={k} onClick={()=>setEditUser({...editUser,role:k,permissions:v.permissions})}
-                      style={{background:editUser.role===k?v.bg:'#f9fafb',color:editUser.role===k?v.color:'#6b7280',border:`1.5px solid ${editUser.role===k?v.color:'#e5e7eb'}`,borderRadius:'6px',padding:'5px 12px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit',fontWeight:editUser.role===k?600:400}}>
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div><label style={LB}>Permissions</label>
-                <PermGrid perms={editUser.permissions||[]} toggle={id=>setEditUser({...editUser,permissions:editUser.permissions?.includes(id)?editUser.permissions.filter((x:string)=>x!==id):[...(editUser.permissions||[]),id]})}/>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div style={{background:'#fff',borderBottom:'1px solid #e5e7eb',padding:'0 24px',height:'54px',display:'flex',alignItems:'center',gap:'12px'}}>
-        <span style={{fontSize:'18px',fontWeight:700,color:'#111827'}}>Users</span>
-        {msg && <span style={{fontSize:'12px',color:msgType==='ok'?'#16a34a':'#e53935',fontWeight:500}}>{msg}</span>}
-        <button onClick={()=>setShowAdd(!showAdd)} style={{marginLeft:'auto',background:'#4f46e5',color:'#fff',border:'none',borderRadius:'7px',padding:'8px 16px',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
-          {showAdd?'✕ Cancel':'+ Add User'}
-        </button>
+    <div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }}>
+        <h1 style={{ margin:0, fontSize:'22px', fontWeight:700, color:'#0f172a' }}>Users ({users.length})</h1>
+        <button onClick={()=>setShowAdd(!showAdd)} style={{ background:'#4f46e5', color:'#fff', border:'none', borderRadius:'8px', padding:'10px 20px', fontWeight:600, cursor:'pointer', fontSize:'14px' }}>\u2795 Add User</button>
       </div>
 
-      <div style={{padding:'24px'}}>
-        {showAdd && (
-          <div style={{background:'#fff',border:'1px solid #c7d2fe',borderRadius:'10px',padding:'20px',marginBottom:'16px'}}>
-            <div style={{fontSize:'15px',fontWeight:700,color:'#111827',marginBottom:'14px',paddingBottom:'10px',borderBottom:'1px solid #f3f4f6'}}>Add New User</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'14px'}}>
-              <div><label style={LB}>Full Name *</label><input style={SI} value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Ali Hassan"/></div>
-              <div><label style={LB}>Username *</label><input style={SI} value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value.toLowerCase().replace(/\s/g,'')}))} placeholder="ali_hassan"/></div>
-              <div><label style={LB}>Email *</label><input type="email" style={SI} value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="ali@example.com"/></div>
-              <div><label style={LB}>Password *</label><input type="password" style={SI} value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Min 6 chars"/></div>
-            </div>
-            <div style={{marginBottom:'14px'}}>
-              <label style={LB}>Role</label>
-              <div style={{display:'flex',gap:'6px',flexWrap:'wrap' as any,marginBottom:'8px'}}>
-                {Object.entries(ROLE_PRESETS).map(([k,v])=>(
-                  <button key={k} onClick={()=>{setSelRole(k);setSelPerms(v.permissions)}}
-                    style={{background:selRole===k?v.bg:'#f9fafb',color:selRole===k?v.color:'#6b7280',border:`1.5px solid ${selRole===k?v.color:'#e5e7eb'}`,borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit',fontWeight:selRole===k?600:400}}>
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{marginBottom:'14px'}}>
-              <label style={LB}>Permissions</label>
-              <PermGrid perms={selPerms} toggle={id=>setSelPerms(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id])}/>
-            </div>
-            <button onClick={addUser} style={{background:'#4f46e5',color:'#fff',border:'none',borderRadius:'7px',padding:'9px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Add User</button>
-          </div>
-        )}
-
-        <div style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:'10px',overflow:'hidden'}}>
-          <div style={{padding:'14px 20px',borderBottom:'1px solid #f3f4f6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span style={{fontSize:'16px',fontWeight:700,color:'#111827'}}>All Users</span>
-            <span style={{fontSize:'12px',color:'#6b7280',background:'#f9fafb',border:'1px solid #e5e7eb',padding:'3px 10px',borderRadius:'6px'}}>{users.length} users</span>
-          </div>
-          {loading ? (
-            <div style={{padding:'40px',textAlign:'center' as any,color:'#6b7280'}}>Loading...</div>
-          ) : users.length===0 ? (
-            <div style={{padding:'50px',textAlign:'center' as any}}>
-              <div style={{fontSize:'40px',marginBottom:'10px'}}>👤</div>
-              <div style={{fontSize:'14px',fontWeight:600,color:'#374151',marginBottom:'4px'}}>Koi user nahi</div>
-              <div style={{fontSize:'13px',color:'#9ca3af'}}>Add User button dabao</div>
-            </div>
-          ) : (
-            <div style={{overflowX:'auto' as any}}>
-              <table style={{width:'100%',borderCollapse:'collapse' as any}}>
-                <thead>
-                  <tr style={{background:'#f9fafb'}}>
-                    {['User','Username','Email','Role','Status','Actions'].map(h=>(
-                      <th key={h} style={{textAlign:'left' as any,fontSize:'11px',color:'#6b7280',textTransform:'uppercase' as any,letterSpacing:'.4px',padding:'10px 14px',borderBottom:'1px solid #f0f0f0',fontWeight:600}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u,i)=>{
-                    const rp = ROLE_PRESETS[u.role]||ROLE_PRESETS.editor
-                    return (
-                      <tr key={u.id} style={{borderBottom:'1px solid #f9fafb',background:i%2===0?'#fff':'#fafafa'}}>
-                        <td style={{padding:'12px 14px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                            <div style={{width:'32px',height:'32px',borderRadius:'50%',background:'linear-gradient(135deg,#4f46e5,#7c3aed)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'13px',fontWeight:700,flexShrink:0}}>
-                              {u.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span style={{fontSize:'13px',fontWeight:600,color:'#111827'}}>{u.name}</span>
-                          </div>
-                        </td>
-                        <td style={{padding:'12px 14px',fontSize:'12px',color:'#4f46e5',fontFamily:'monospace'}}>@{u.username}</td>
-                        <td style={{padding:'12px 14px',fontSize:'12px',color:'#6b7280'}}>{u.email}</td>
-                        <td style={{padding:'12px 14px'}}><span style={{background:rp.bg,color:rp.color,fontSize:'11px',padding:'3px 8px',borderRadius:'4px',fontWeight:600}}>{rp.label}</span></td>
-                        <td style={{padding:'12px 14px'}}><span style={{background:u.status==='active'?'#f0fdf4':'#fef2f2',color:u.status==='active'?'#16a34a':'#e53935',fontSize:'11px',padding:'3px 8px',borderRadius:'4px',fontWeight:600}}>{u.status==='active'?'Active':'Disabled'}</span></td>
-                        <td style={{padding:'12px 14px'}}>
-                          <div style={{display:'flex',gap:'5px'}}>
-                            <button onClick={()=>setEditUser({...u})} style={{background:'#eef2ff',color:'#4f46e5',border:'1px solid #c7d2fe',borderRadius:'5px',padding:'5px 10px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit'}}>Edit</button>
-                            <button onClick={()=>toggleStatus(u)} style={{background:u.status==='active'?'#fff7ed':'#f0fdf4',color:u.status==='active'?'#ea580c':'#16a34a',border:`1px solid ${u.status==='active'?'#fed7aa':'#bbf7d0'}`,borderRadius:'5px',padding:'5px 10px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit'}}>
-                              {u.status==='active'?'Disable':'Enable'}
-                            </button>
-                            <button onClick={()=>setDelId(u.id)} style={{background:'#fef2f2',color:'#e53935',border:'1px solid #fca5a5',borderRadius:'5px',padding:'5px 10px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit'}}>Del</button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+      {showAdd && (<div style={{ background:'#fff', borderRadius:'12px', padding:'20px', boxShadow:'0 1px 3px rgba(0,0,0,.08)', marginBottom:'16px' }}>
+        <h3 style={{ margin:'0 0 16px', fontSize:'16px', fontWeight:700 }}>Add New User</h3>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px', marginBottom:'14px' }}>
+          <div><label style={lbl}>Name *</label><input style={inp} value={form.name} onChange={e=>set('name',e.target.value)} /></div>
+          <div><label style={lbl}>Username</label><input style={inp} value={form.username} onChange={e=>set('username',e.target.value)} /></div>
+          <div><label style={lbl}>Email *</label><input style={inp} type='email' value={form.email} onChange={e=>set('email',e.target.value)} /></div>
+          <div><label style={lbl}>Password *</label><input style={inp} type='password' value={form.password} onChange={e=>set('password',e.target.value)} /></div>
+          <div><label style={lbl}>Role</label><select style={inp} value={form.role} onChange={e=>set('role',e.target.value)}>{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
         </div>
+        <div style={{ display:'flex', gap:'10px' }}>
+          <button onClick={addUser} disabled={saving} style={{ background:'#4f46e5', color:'#fff', border:'none', borderRadius:'8px', padding:'10px 20px', fontWeight:600, cursor:'pointer' }}>{saving?'Creating...':'Create User'}</button>
+          <button onClick={()=>setShowAdd(false)} style={{ background:'#f1f5f9', color:'#374151', border:'none', borderRadius:'8px', padding:'10px 20px', fontWeight:600, cursor:'pointer' }}>Cancel</button>
+        </div>
+      </div>)}
+
+      <div style={{ background:'#fff', borderRadius:'12px', boxShadow:'0 1px 3px rgba(0,0,0,.08)', overflow:'hidden' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <thead><tr style={{ background:'#f8fafc' }}>
+            {['User','Email','Role','Status','Joined','Actions'].map(h=><th key={h} style={{ padding:'12px 16px', textAlign:'left', fontSize:'12px', fontWeight:600, color:'#64748b' }}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {loading?<tr><td colSpan={6} style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>Loading...</td></tr>
+            :users.map((u:any)=>(
+              <tr key={u.id} style={{ borderTop:'1px solid #f1f5f9' }}>
+                <td style={{ padding:'12px 16px' }}><div style={{ fontWeight:600, fontSize:'13px', color:'#0f172a' }}>{u.name}</div><div style={{ fontSize:'11px', color:'#94a3b8' }}>@{u.username}</div></td>
+                <td style={{ padding:'12px 16px', fontSize:'13px', color:'#374151' }}>{u.email}</td>
+                <td style={{ padding:'12px 16px' }}>
+                  <select value={u.role} onChange={e=>changeRole(u.id,e.target.value)} style={{ border:'none', background:ROLE_COLORS[u.role]+'20', color:ROLE_COLORS[u.role], borderRadius:'20px', padding:'3px 8px', fontSize:'12px', fontWeight:600, cursor:'pointer', outline:'none' }}>
+                    {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
+                  </select>
+                </td>
+                <td style={{ padding:'12px 16px' }}><button onClick={()=>toggleActive(u.id,u.active)} style={{ background:u.active?'#dcfce7':'#fee2e2', color:u.active?'#16a34a':'#dc2626', border:'none', borderRadius:'20px', padding:'3px 10px', fontSize:'11px', fontWeight:600, cursor:'pointer' }}>{u.active?'Active':'Suspended'}</button></td>
+                <td style={{ padding:'12px 16px', fontSize:'12px', color:'#94a3b8' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td style={{ padding:'12px 16px' }}><button onClick={()=>deleteUser(u.id)} style={{ background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'6px', padding:'5px 10px', cursor:'pointer', fontSize:'12px' }}>Delete</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
