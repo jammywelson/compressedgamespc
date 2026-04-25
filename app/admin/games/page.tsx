@@ -1,196 +1,146 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
-interface Game {
-  id: string; title: string; slug: string; category: string
-  size: string; originalSize?: string; status: string
-  downloadCount: number; featured: boolean; createdAt: string
-}
+export default function GamesPage() {
+  const [games, setGames] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('all')
+  const [category, setCategory] = useState('all')
+  const [selected, setSelected] = useState<string[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const limit = 20
+  const router = useRouter()
 
-const SI: React.CSSProperties = { background:'#fff', border:'1px solid #e5e7eb', borderRadius:'7px', padding:'8px 12px', color:'#111827', fontSize:'13px', outline:'none', fontFamily:'inherit' }
-
-function badge(s: string) {
-  return { hot:{bg:'#fef2f2',color:'#e53935',label:'Hot'}, active:{bg:'#f0fdf4',color:'#16a34a',label:'Active'}, draft:{bg:'#f9fafb',color:'#6b7280',label:'Draft'} }[s] || {bg:'#f9fafb',color:'#6b7280',label:s}
-}
-
-export default function AdminGamesPage() {
-  const [games,  setGames]   = useState<Game[]>([])
-  const [loading,setLoading] = useState(true)
-  const [search, setSearch]  = useState('')
-  const [catF,   setCatF]    = useState('')
-  const [statF,  setStatF]   = useState('')
-  const [sel,    setSel]     = useState<string[]>([])
-  const [delId,  setDelId]   = useState<string|null>(null)
-  const [bulkAct,setBulkAct] = useState('')
-  const [bulkCfm,setBulkCfm] = useState(false)
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
-    try {
-      const res = await fetch('/api/games')
-      const data = await res.json()
-      setGames(Array.isArray(data) ? data : [])
-    } catch(e) { setGames([]) }
+    const params = new URLSearchParams({ limit: String(limit), page: String(page) })
+    if (search) params.set('search', search)
+    if (status !== 'all') params.set('status', status)
+    if (category !== 'all') params.set('category', category)
+    const r = await fetch('/api/games?' + params)
+    const d = await r.json()
+    setGames(d.games || [])
+    setTotal(d.total || 0)
     setLoading(false)
-  }
+  }, [search, status, category, page])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
-  const cats = [...new Set(games.map(g => g.category))]
-
-  const filtered = games.filter(g =>
-    g.title.toLowerCase().includes(search.toLowerCase()) &&
-    (!catF || g.category === catF) &&
-    (!statF || g.status === statF)
-  )
-
-  const toggleSel  = (id: string) => setSel(s => s.includes(id)?s.filter(x=>x!==id):[...s,id])
-  const toggleAll  = () => setSel(s => s.length===filtered.length?[]:filtered.map(g=>g.id))
-
-  const doDelete = async (id: string) => {
-    await fetch(`/api/games/${id}`, { method:'DELETE' })
-    setDelId(null); load()
-  }
-
-  const toggleFeat = async (g: Game) => {
-    await fetch(`/api/games/${g.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ featured:!g.featured }) })
+  const deleteGame = async (id: string) => {
+    if (!confirm('Delete this game?')) return
+    await fetch('/api/games/' + id, { method: 'DELETE' })
     load()
   }
 
-  const applyBulk = async () => {
-    if (bulkAct==='delete') {
-      await Promise.all(sel.map(id => fetch(`/api/games/${id}`, { method:'DELETE' })))
-    } else {
-      await Promise.all(sel.map(id => fetch(`/api/games/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ status:bulkAct }) })))
-    }
-    setSel([]); setBulkAct(''); setBulkCfm(false); load()
+  const bulkAction = async (action: string) => {
+    if (!selected.length) return alert('Select games first')
+    if (!confirm(action + ' ' + selected.length + ' games?')) return
+    await Promise.all(selected.map(id => {
+      if (action === 'delete') return fetch('/api/games/' + id, { method: 'DELETE' })
+      return fetch('/api/games/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: action }) })
+    }))
+    setSelected([])
+    load()
   }
 
+  const toggleSelect = (id: string) => setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
+  const selectAll = () => setSelected(selected.length === games.length ? [] : games.map(g => g.id))
+  const pages = Math.ceil(total / limit)
+
+  const inp: any = { border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none', background: '#fff' }
+  const btn = (bg: string, color = '#fff') => ({ background: bg, color, border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: '13px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' })
+
   return (
-    <div style={{ background:'#f0f2f8', minHeight:'100vh' }}>
-      {delId && (
-        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center' }}>
-          <div style={{ background:'#fff',borderRadius:'12px',padding:'28px',width:'360px',textAlign:'center' as any }}>
-            <div style={{ fontSize:'32px',marginBottom:'10px' }}>🗑</div>
-            <div style={{ fontFamily:'system-ui',fontSize:'18px',fontWeight:700,color:'#111827',marginBottom:'8px' }}>Delete Game?</div>
-            <div style={{ fontSize:'13px',color:'#6b7280',marginBottom:'20px' }}>"{games.find(g=>g.id===delId)?.title}" permanently delete hoga</div>
-            <div style={{ display:'flex',gap:'10px' }}>
-              <button onClick={()=>setDelId(null)} style={{ flex:1,background:'#f3f4f6',color:'#374151',border:'none',borderRadius:'8px',padding:'10px',cursor:'pointer',fontFamily:'inherit' }}>Cancel</button>
-              <button onClick={()=>doDelete(delId)} style={{ flex:1,background:'#e53935',color:'#fff',border:'none',borderRadius:'8px',padding:'10px',fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Delete</button>
-            </div>
-          </div>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' as any, gap: '12px' }}>
+        <div>
+          <h1 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: 700, color: '#0f172a' }}>Games</h1>
+          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>{total} total games</p>
         </div>
-      )}
-      {bulkCfm && (
-        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center' }}>
-          <div style={{ background:'#fff',borderRadius:'12px',padding:'28px',width:'360px',textAlign:'center' as any }}>
-            <div style={{ fontSize:'32px',marginBottom:'10px' }}>{bulkAct==='delete'?'🗑':'✏️'}</div>
-            <div style={{ fontFamily:'system-ui',fontSize:'18px',fontWeight:700,color:'#111827',marginBottom:'8px' }}>{sel.length} Games {bulkAct==='delete'?'Delete':'Update'}?</div>
-            <div style={{ display:'flex',gap:'10px' }}>
-              <button onClick={()=>setBulkCfm(false)} style={{ flex:1,background:'#f3f4f6',color:'#374151',border:'none',borderRadius:'8px',padding:'10px',cursor:'pointer',fontFamily:'inherit' }}>Cancel</button>
-              <button onClick={applyBulk} style={{ flex:1,background:bulkAct==='delete'?'#e53935':'#4f46e5',color:'#fff',border:'none',borderRadius:'8px',padding:'10px',fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Confirm</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div style={{ background:'#fff',borderBottom:'1px solid #e5e7eb',padding:'0 24px',height:'54px',display:'flex',alignItems:'center',gap:'12px' }}>
-        <span style={{ fontFamily:'system-ui',fontSize:'18px',fontWeight:700,color:'#111827' }}>All Games</span>
-        <Link href="/admin/games/add" style={{ marginLeft:'auto',background:'#4f46e5',color:'#fff',borderRadius:'7px',padding:'8px 16px',fontSize:'13px',fontWeight:600,textDecoration:'none' }}>+ Add New Game</Link>
+        <Link href='/admin/games/add' style={btn('#4f46e5') as any}>\u2795 Add New Game</Link>
       </div>
 
-      <div style={{ padding:'24px' }}>
-        <div style={{ background:'#fff',border:'1px solid #e5e7eb',borderRadius:'10px',overflow:'hidden' }}>
-          <div style={{ padding:'14px 20px',borderBottom:'1px solid #f3f4f6',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-            <span style={{ fontFamily:'system-ui',fontSize:'16px',fontWeight:700,color:'#111827' }}>Games List</span>
-            <span style={{ fontSize:'12px',color:'#6b7280',background:'#f9fafb',border:'1px solid #e5e7eb',padding:'3px 10px',borderRadius:'6px' }}>{games.length} games</span>
-          </div>
-
-          <div style={{ padding:'12px 20px',borderBottom:'1px solid #f3f4f6',background:'#fafafa',display:'flex',gap:'8px',flexWrap:'wrap' as any }}>
-            <input placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{ ...SI,flex:1,minWidth:'160px' }}/>
-            <select value={catF} onChange={e=>setCatF(e.target.value)} style={{ ...SI,cursor:'pointer' }}>
-              <option value="">All Categories</option>
-              {cats.map(c=><option key={c}>{c}</option>)}
-            </select>
-            <select value={statF} onChange={e=>setStatF(e.target.value)} style={{ ...SI,cursor:'pointer' }}>
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="hot">Hot</option>
-              <option value="draft">Draft</option>
-            </select>
-            <button onClick={load} style={{ ...SI,cursor:'pointer',background:'#f3f4f6' }}>↻ Refresh</button>
-          </div>
-
-          {sel.length > 0 && (
-            <div style={{ padding:'10px 20px',borderBottom:'1px solid #f3f4f6',background:'#eef2ff',display:'flex',alignItems:'center',gap:'8px' }}>
-              <span style={{ fontSize:'13px',fontWeight:600,color:'#4f46e5' }}>{sel.length} selected</span>
-              <button onClick={()=>{setBulkAct('active');setBulkCfm(true)}} style={{ background:'#f0fdf4',color:'#16a34a',border:'1px solid #bbf7d0',borderRadius:'6px',padding:'5px 10px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit' }}>Set Active</button>
-              <button onClick={()=>{setBulkAct('hot');setBulkCfm(true)}} style={{ background:'#fef2f2',color:'#e53935',border:'1px solid #fca5a5',borderRadius:'6px',padding:'5px 10px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit' }}>Set Hot</button>
-              <button onClick={()=>{setBulkAct('draft');setBulkCfm(true)}} style={{ background:'#f9fafb',color:'#6b7280',border:'1px solid #e5e7eb',borderRadius:'6px',padding:'5px 10px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit' }}>Set Draft</button>
-              <button onClick={()=>{setBulkAct('delete');setBulkCfm(true)}} style={{ background:'#e53935',color:'#fff',border:'none',borderRadius:'6px',padding:'5px 10px',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>Delete</button>
-              <button onClick={()=>setSel([])} style={{ marginLeft:'auto',background:'transparent',color:'#9ca3af',border:'none',cursor:'pointer',fontFamily:'inherit' }}>Deselect</button>
-            </div>
-          )}
-
-          {loading ? (
-            <div style={{ padding:'60px',textAlign:'center' as any,color:'#6b7280' }}>Loading...</div>
-          ) : games.length === 0 ? (
-            <div style={{ padding:'60px',textAlign:'center' as any }}>
-              <div style={{ fontSize:'48px',marginBottom:'12px' }}>🎮</div>
-              <div style={{ fontFamily:'system-ui',fontSize:'20px',fontWeight:700,color:'#111827',marginBottom:'8px' }}>Koi game nahi</div>
-              <Link href="/admin/games/add" style={{ background:'#4f46e5',color:'#fff',borderRadius:'8px',padding:'10px 24px',fontSize:'13px',fontWeight:600,textDecoration:'none' }}>+ Add First Game</Link>
-            </div>
-          ) : (
-            <div style={{ overflowX:'auto' as any }}>
-              <table style={{ width:'100%',borderCollapse:'collapse' as any }}>
-                <thead>
-                  <tr style={{ background:'#f9fafb' }}>
-                    <th style={{ padding:'10px 16px',borderBottom:'1px solid #f0f0f0',width:'36px' }}>
-                      <input type="checkbox" checked={sel.length===filtered.length&&filtered.length>0} onChange={toggleAll} style={{ cursor:'pointer',accentColor:'#4f46e5' }}/>
-                    </th>
-                    {['Game','Category','Size','Status','⭐','Downloads','Actions'].map(h=>(
-                      <th key={h} style={{ textAlign:'left' as any,fontSize:'11px',color:'#6b7280',textTransform:'uppercase' as any,letterSpacing:'.4px',padding:'10px 14px',borderBottom:'1px solid #f0f0f0',fontWeight:600 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((g,i)=>{
-                    const b = badge(g.status)
-                    return (
-                      <tr key={g.id} style={{ borderBottom:'1px solid #f9fafb',background:sel.includes(g.id)?'#f0f4ff':i%2===0?'#fff':'#fafafa' }}>
-                        <td style={{ padding:'10px 16px' }}><input type="checkbox" checked={sel.includes(g.id)} onChange={()=>toggleSel(g.id)} style={{ cursor:'pointer',accentColor:'#4f46e5' }}/></td>
-                        <td style={{ padding:'10px 14px' }}>
-                          <div style={{ display:'flex',alignItems:'center',gap:'8px' }}>
-                            <div style={{ width:'38px',height:'38px',borderRadius:'7px',background:'linear-gradient(135deg,#1a1f3c,#252b4a)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,.5)',fontSize:'14px',fontWeight:700 }}>{g.title.charAt(0)}</div>
-                            <div>
-                              <div style={{ fontSize:'13px',fontWeight:600,color:'#111827' }}>{g.title}</div>
-                              <div style={{ fontSize:'10px',color:'#9ca3af',fontFamily:'monospace' }}>/games/{g.slug}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding:'10px 14px' }}><span style={{ background:'#eef2ff',color:'#4f46e5',fontSize:'11px',padding:'2px 7px',borderRadius:'4px' }}>{g.category}</span></td>
-                        <td style={{ padding:'10px 14px',fontSize:'13px',color:'#16a34a',fontWeight:700 }}>{g.size}</td>
-                        <td style={{ padding:'10px 14px' }}><span style={{ background:b.bg,color:b.color,fontSize:'11px',padding:'3px 8px',borderRadius:'5px',fontWeight:600 }}>{b.label}</span></td>
-                        <td style={{ padding:'10px 14px',textAlign:'center' as any }}>
-                          <button onClick={()=>toggleFeat(g)} style={{ background:'transparent',border:'none',cursor:'pointer',fontSize:'18px',opacity:g.featured?1:.25 }}>⭐</button>
-                        </td>
-                        <td style={{ padding:'10px 14px',fontSize:'13px',color:'#374151' }}>{g.downloadCount||0}</td>
-                        <td style={{ padding:'10px 14px' }}>
-                          <div style={{ display:'flex',gap:'5px' }}>
-                            <Link href={`/admin/games/${g.id}/edit`} style={{ background:'#eef2ff',color:'#4f46e5',border:'1px solid #c7d2fe',borderRadius:'5px',padding:'5px 10px',fontSize:'11px',fontWeight:500,textDecoration:'none' }}>Edit</Link>
-                            <button onClick={()=>setDelId(g.id)} style={{ background:'#fef2f2',color:'#e53935',border:'1px solid #fca5a5',borderRadius:'5px',padding:'5px 10px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit' }}>Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+      {/* Filters */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,.08)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' as any, alignItems: 'center' }}>
+        <input style={{ ...inp, flex: 1, minWidth: '200px' }} placeholder='Search games...' value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
+        <select style={inp} value={status} onChange={e => { setStatus(e.target.value); setPage(1) }}>
+          <option value='all'>All Status</option>
+          <option value='published'>Published</option>
+          <option value='draft'>Draft</option>
+          <option value='scheduled'>Scheduled</option>
+        </select>
+        <select style={inp} value={category} onChange={e => { setCategory(e.target.value); setPage(1) }}>
+          <option value='all'>All Categories</option>
+          {['Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Shooting','Sci-Fi','Survival','Puzzle','Old Games'].map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {selected.length > 0 && (<>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>{selected.length} selected</span>
+          <select style={inp} onChange={e => { if (e.target.value) bulkAction(e.target.value); e.target.value = '' }} defaultValue=''>
+            <option value=''>Bulk Actions</option>
+            <option value='published'>Publish</option>
+            <option value='draft'>Set Draft</option>
+            <option value='delete'>Delete</option>
+          </select>
+        </>)}
       </div>
+
+      {/* Table */}
+      <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,.08)', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '12px 16px', width: '40px' }}><input type='checkbox' checked={selected.length === games.length && games.length > 0} onChange={selectAll} /></th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Title</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Category</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Size</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Status</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Downloads</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Date</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? <tr><td colSpan={8} style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>Loading...</td></tr>
+            : games.length === 0 ? <tr><td colSpan={8} style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>No games found</td></tr>
+            : games.map((g: any) => (
+              <tr key={g.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '12px 16px' }}><input type='checkbox' checked={selected.includes(g.id)} onChange={() => toggleSelect(g.id)} /></td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.title}</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>/{g.slug}</div>
+                </td>
+                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#374151' }}>{g.category}</td>
+                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#374151' }}>{g.size}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: g.status==='published'?'#dcfce7':g.status==='draft'?'#f1f5f9':'#fef9c3', color: g.status==='published'?'#16a34a':g.status==='draft'?'#475569':'#a16207' }}>{g.status}</span>
+                </td>
+                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#374151' }}>{g.downloadCount}</td>
+                <td style={{ padding: '12px 16px', fontSize: '12px', color: '#94a3b8' }}>{new Date(g.createdAt).toLocaleDateString()}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <Link href={'/admin/games/edit/'+g.id} style={{ background: '#f1f5f9', color: '#374151', border: 'none', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', textDecoration: 'none', fontWeight: 500 }}>Edit</Link>
+                    <Link href={'/games/'+g.slug} target='_blank' style={{ background: '#f1f5f9', color: '#374151', border: 'none', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', textDecoration: 'none' }}>View</Link>
+                    <button onClick={() => deleteGame(g.id)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {pages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+          {Array.from({ length: pages }, (_, i) => i + 1).map(p => (
+            <button key={p} onClick={() => setPage(p)} style={{ width: '36px', height: '36px', borderRadius: '8px', border: 'none', background: page === p ? '#4f46e5' : '#fff', color: page === p ? '#fff' : '#374151', cursor: 'pointer', fontWeight: page === p ? 600 : 400, boxShadow: '0 1px 2px rgba(0,0,0,.06)' }}>{p}</button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
