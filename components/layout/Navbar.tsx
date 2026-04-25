@@ -62,7 +62,7 @@ export default function Navbar() {
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search games..."
-              style={{ width:'100%', background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.15)', borderRadius:'8px', padding:'7px 32px 7px 10px', color:'#fff', fontSize:'13px', outline:'none', fontFamily:'inherit' }}
+              style={{ width:'100%', background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.15)', borderRadius:'8px', height:'36px',padding:'5px 32px 7px 10px', color:'#fff', fontSize:'13px', outline:'none', fontFamily:'inherit' }}
             />
             <button type="submit" style={{ position:'absolute', right:'8px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,.6)', fontSize:'15px', padding:0 }}>⌕</button>
           </form>
