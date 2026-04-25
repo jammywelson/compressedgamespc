@@ -1,5 +1,3 @@
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
@@ -24,7 +22,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 function Stars({ r }: { r: number }) {
-  return <span>{[1,2,3,4,5].map(i=><span key={i} style={{color:i<=Math.round(r)?'#fbbf24':'#d1d5db',fontSize:'14px'}}>{i<=Math.round(r)?'★':'☆'}</span>)}</span>
+  return <span>{[1,2,3,4,5].map(i=><span key={i} style={{color:i<=Math.round(r)?'#fbbf24':'#d1d5db',fontSize:'14px'}}>{i<=Math.round(r)?'â':'â'}</span>)}</span>
 }
 
 export default async function GamePage({ params }: { params: { slug: string } }) {
@@ -38,7 +36,7 @@ export default async function GamePage({ params }: { params: { slug: string } })
 
   return (
     <>
-      <Navbar />
+      
       <main style={{ maxWidth:'1000px', margin:'0 auto', padding:'16px' }}>
         {/* Breadcrumb */}
         <div style={{ fontSize:'12px', color:'#6b7280', marginBottom:'16px', display:'flex', gap:'6px', alignItems:'center' }}>
@@ -54,8 +52,8 @@ export default async function GamePage({ params }: { params: { slug: string } })
             {/* Game banner */}
             <div style={{ background:'linear-gradient(135deg,#1a1f3c,#252b4a)', borderRadius:'12px', height:'220px', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'20px', position:'relative', overflow:'hidden' }}>
               <div style={{ fontSize:'16px', color:'rgba(255,255,255,.3)', textAlign:'center' as any, padding:'20px' }}>{game.title}</div>
-              {game.status === 'hot' && <span style={{ position:'absolute', top:'12px', left:'12px', background:'#e53935', color:'#fff', fontSize:'11px', fontWeight:700, padding:'3px 10px', borderRadius:'5px' }}>🔥 HOT</span>}
-              <span style={{ position:'absolute', top:'12px', right:'12px', background:'rgba(79,70,229,.8)', color:'#fff', fontSize:'11px', padding:'3px 10px', borderRadius:'5px' }}>✓ Compressed</span>
+              {game.status === 'hot' && <span style={{ position:'absolute', top:'12px', left:'12px', background:'#e53935', color:'#fff', fontSize:'11px', fontWeight:700, padding:'3px 10px', borderRadius:'5px' }}>ð¥ HOT</span>}
+              <span style={{ position:'absolute', top:'12px', right:'12px', background:'rgba(79,70,229,.8)', color:'#fff', fontSize:'11px', padding:'3px 10px', borderRadius:'5px' }}>â Compressed</span>
             </div>
 
             <h1 style={{ fontSize:'clamp(20px,4vw,28px)', fontWeight:700, color:'#111827', marginBottom:'8px' }}>{game.title}</h1>
@@ -113,7 +111,7 @@ export default async function GamePage({ params }: { params: { slug: string } })
                   {links.map((link, i) => (
                     <a key={i} href={link} target="_blank" rel="noopener noreferrer"
                       style={{ display:'block', background:i===0?'#4f46e5':'#f3f4f6', color:i===0?'#fff':'#374151', borderRadius:'8px', padding:'11px 16px', fontSize:'13px', fontWeight:600, textAlign:'center' as any, textDecoration:'none' }}>
-                      ⬇ {i===0?'Direct Download':`Mirror ${i}`}
+                      â¬ {i===0?'Direct Download':`Mirror ${i}`}
                     </a>
                   ))}
                 </div>
@@ -122,7 +120,7 @@ export default async function GamePage({ params }: { params: { slug: string } })
           </div>
         </div>
       </main>
-      <Footer />
+      
     </>
   )
 }
