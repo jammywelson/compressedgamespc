@@ -9,56 +9,173 @@ datasource db {
 }
 
 model Game {
-  id           String   @id @default(cuid())
-  title        String
-  slug         String   @unique
-  category     String
-  size         String
-  originalSize String?
-  status       String   @default("active")
-  featured     Boolean  @default(false)
-  description  String?  @db.Text
-  downloadLinks String[] 
-  rating       Float    @default(4.0)
-  downloadCount Int     @default(0)
-  seoTitle     String?
-  seoDesc      String?
-  seoKeywords  String?
-  altText      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  category      String
+  tags          String[]  @default([])
+  size          String
+  originalSize  String?
+  status        String    @default("draft")
+  featured      Boolean   @default(false)
+  trending      Boolean   @default(false)
+  description   String?   @db.Text
+  excerpt       String?
+  coverImage    String?
+  gallery       String[]  @default([])
+  downloadLinks String[]
+  version       String?
+  developer     String?
+  publisher     String?
+  releaseYear   String?
+  platform      String    @default("PC")
+  rating        Float     @default(4.0)
+  downloadCount Int       @default(0)
+  viewCount     Int       @default(0)
+  seoTitle      String?
+  seoDesc       String?
+  seoKeywords   String?
+  altText       String?
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  comments      Comment[]
 }
 
 model User {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  username    String   @unique
-  email       String   @unique
+  username    String    @unique
+  email       String    @unique
   password    String
-  role        String   @default("editor")
+  role        String    @default("editor")
   permissions String[]
-  status      String   @default("active")
+  avatar      String?
+  bio         String?
+  active      Boolean   @default(true)
+  twoFaSecret String?
+  twoFaEnabled Boolean  @default(false)
+  lastLogin   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  loginLogs   LoginLog[]
+  activityLogs ActivityLog[]
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  order       Int      @default(0)
+  gameCount   Int      @default(0)
   createdAt   DateTime @default(now())
 }
 
-model Setting {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String @db.Text
-}
-
-model PageView {
+model Tag {
   id        String   @id @default(cuid())
-  page      String
-  device    String?
-  browser   String?
+  name      String   @unique
+  slug      String   @unique
+  color     String?
   createdAt DateTime @default(now())
 }
 
-model DailyStat {
+model Setting {
   id        String   @id @default(cuid())
-  date      String   @unique
-  views     Int      @default(0)
-  visitors  Int      @default(0)
+  key       String   @unique
+  value     String   @db.Text
   updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  type      String
+  size      Int
+  folder    String?
+  altText   String?
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  author    String
+  email     String?
+  content   String   @db.Text
+  status    String   @default("pending")
+  ip        String?
+  createdAt DateTime @default(now())
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  date      String
+  pageViews Int      @default(0)
+  visitors  Int      @default(0)
+  downloads Int      @default(0)
+  country   String?
+  device    String?
+  createdAt DateTime @default(now())
+}
+
+model LoginLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  success   Boolean
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String?
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+model BlockedIp {
+  id        String   @id @default(cuid())
+  ip        String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model Menu {
+  id        String     @id @default(cuid())
+  name      String
+  location  String     @unique
+  items     Json
+  updatedAt DateTime   @updatedAt
+}
+
+model Page {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String?  @db.Text
+  status      String   @default("published")
+  seoTitle    String?
+  seoDesc     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  gameId    String
+  ip        String?
+  country   String?
+  createdAt DateTime @default(now())
 }
