@@ -2,13 +2,12 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
-const CATS = ['Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Sci-Fi','Survival','Puzzle','Old Games']
+const FCATS = ['Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Sci-Fi','Survival','Puzzle','Old Games']
 
-const DEFAULTS: Record<string,any> = {
-  footerBg: '#1a1f3c',
-  footerText: '© 2026 CompressedGamesPC.com',
+const FDEFS: Record<string,any> = {
+  footerBg: '#1a1f3c', footerText: '\u00a9 2026 CompressedGamesPC.com',
   footerAbout: 'Your #1 source for highly compressed PC games. Free direct download links, no surveys.',
-  siteName: 'CompressedGamesPC',
+  siteName: 'CompressedGamesPC', accentColor: '#4f46e5',
   socialFacebook: '', socialTelegram: '', socialYoutube: '', socialDiscord: '',
   showAbout: true, showContact: true, showPrivacy: true,
   showDisclaimer: true, showDmca: true, showTerms: true,
@@ -17,89 +16,81 @@ const DEFAULTS: Record<string,any> = {
 }
 
 export default function Footer() {
-  const [cfg, setCfg] = useState<Record<string,any>>(DEFAULTS)
+  const [fcfg, setFcfg] = useState<Record<string,any>>(FDEFS)
 
   useEffect(() => {
-    fetch('/api/settings?key=appearance', { cache: 'no-store' })
+    fetch('/api/settings?key=appearance&t=' + Date.now(), { cache: 'no-store' })
       .then(r => r.json())
-      .then((d: any) => { if (d && typeof d === 'object') setCfg(p => ({ ...p, ...d })) })
+      .then((d: any) => { if (d && typeof d === 'object') setFcfg(p => ({ ...p, ...d })) })
       .catch(() => {})
   }, [])
 
   const pages: [string, string, boolean][] = [
-    ['/about', 'About Us', cfg.showAbout],
-    ['/contact', 'Contact', cfg.showContact],
-    ['/privacy', 'Privacy Policy', cfg.showPrivacy],
-    ['/disclaimer', 'Disclaimer', cfg.showDisclaimer],
-    ['/dmca', 'DMCA', cfg.showDmca],
-    ['/terms', 'Terms of Service', cfg.showTerms],
+    ['/about', 'About Us', !!fcfg.showAbout],
+    ['/contact', 'Contact', !!fcfg.showContact],
+    ['/privacy', 'Privacy Policy', !!fcfg.showPrivacy],
+    ['/disclaimer', 'Disclaimer', !!fcfg.showDisclaimer],
+    ['/dmca', 'DMCA', !!fcfg.showDmca],
+    ['/terms', 'Terms of Service', !!fcfg.showTerms],
   ]
 
-  const cats1 = CATS.slice(0, 6)
-  const cats2 = CATS.slice(6)
-
-  const colStyle: any = { minWidth: '150px' }
-  const headStyle: any = { color: '#fff', fontWeight: 700, fontSize: '15px', marginBottom: '14px' }
-  const linkStyle: any = { color: '#94a3b8', textDecoration: 'none', fontSize: '13px', display: 'block', marginBottom: '8px', transition: 'color .2s' }
+  const lnk: any = { color: '#94a3b8', textDecoration: 'none', fontSize: '13px', display: 'block', marginBottom: '8px', transition: 'color .2s' }
+  const colHead: any = { color: '#e2e8f0', fontWeight: 700, fontSize: '14px', marginBottom: '14px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,.1)' }
 
   return (
-    <footer style={{ background: cfg.footerBg, padding: '40px 20px 20px', marginTop: 'auto' }}>
+    <footer style={{ background: fcfg.footerBg || '#1a1f3c', padding: '48px 24px 24px', marginTop: 'auto' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' as any, marginBottom: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '32px', marginBottom: '40px' }}>
 
-          {cfg.footerShowBrand && (
-            <div style={{ ...colStyle, flex: '1.5', minWidth: '200px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <div style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '14px' }}>CGP</div>
-                <span style={{ color: '#fff', fontWeight: 700, fontSize: '16px' }}>{cfg.siteName}</span>
+          {fcfg.footerShowBrand && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <div style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '13px' }}>CGP</div>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: '15px' }}>{fcfg.siteName}</span>
               </div>
-              <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.6', margin: '0 0 16px' }}>{cfg.footerAbout}</p>
-              {cfg.footerShowSocial && (
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as any }}>
-                  {cfg.socialFacebook && <a href={cfg.socialFacebook} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>Facebook</a>}
-                  {cfg.socialTelegram && <a href={cfg.socialTelegram} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>Telegram</a>}
-                  {cfg.socialYoutube && <a href={cfg.socialYoutube} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>YouTube</a>}
-                  {cfg.socialDiscord && <a href={cfg.socialDiscord} target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,.1)', padding: '6px 10px', borderRadius: '6px' }}>Discord</a>}
+              <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: 1.7, margin: '0 0 16px' }}>{fcfg.footerAbout}</p>
+              {fcfg.footerShowSocial && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as any }}>
+                  {fcfg.socialFacebook && <a href={fcfg.socialFacebook} target='_blank' rel='noopener' style={{ color: '#94a3b8', fontSize: '12px', background: 'rgba(255,255,255,.08)', padding: '5px 10px', borderRadius: '6px', textDecoration: 'none' }}>Facebook</a>}
+                  {fcfg.socialTelegram && <a href={fcfg.socialTelegram} target='_blank' rel='noopener' style={{ color: '#94a3b8', fontSize: '12px', background: 'rgba(255,255,255,.08)', padding: '5px 10px', borderRadius: '6px', textDecoration: 'none' }}>Telegram</a>}
+                  {fcfg.socialYoutube && <a href={fcfg.socialYoutube} target='_blank' rel='noopener' style={{ color: '#94a3b8', fontSize: '12px', background: 'rgba(255,255,255,.08)', padding: '5px 10px', borderRadius: '6px', textDecoration: 'none' }}>YouTube</a>}
+                  {fcfg.socialDiscord && <a href={fcfg.socialDiscord} target='_blank' rel='noopener' style={{ color: '#94a3b8', fontSize: '12px', background: 'rgba(255,255,255,.08)', padding: '5px 10px', borderRadius: '6px', textDecoration: 'none' }}>Discord</a>}
                 </div>
               )}
             </div>
           )}
 
-          {cfg.footerShowCats1 && (
-            <div style={colStyle}>
-              <div style={headStyle}>Games</div>
-              {cats1.map(c => (
-                <Link key={c} href={'/games?category=' + encodeURIComponent(c)} style={linkStyle}>{c}</Link>
-              ))}
+          {fcfg.footerShowCats1 && (
+            <div>
+              <div style={colHead}>Games</div>
+              {FCATS.slice(0,6).map(c => <Link key={c} href={'/games?category='+encodeURIComponent(c)} style={lnk}>{c}</Link>)}
             </div>
           )}
 
-          {cfg.footerShowCats2 && (
-            <div style={colStyle}>
-              <div style={headStyle}>More Games</div>
-              {cats2.map(c => (
-                <Link key={c} href={'/games?category=' + encodeURIComponent(c)} style={linkStyle}>{c}</Link>
-              ))}
+          {fcfg.footerShowCats2 && (
+            <div>
+              <div style={colHead}>More Games</div>
+              {FCATS.slice(6).map(c => <Link key={c} href={'/games?category='+encodeURIComponent(c)} style={lnk}>{c}</Link>)}
             </div>
           )}
 
-          {cfg.footerShowLinks && (
-            <div style={colStyle}>
-              <div style={headStyle}>Quick Links</div>
-              <Link href="/games" style={linkStyle}>All Games</Link>
-              <Link href="/games?status=hot" style={linkStyle}>Hot Games</Link>
-              <Link href="/games?status=new" style={linkStyle}>New Games</Link>
-              {pages.filter(([,, show]) => show).map(([href, label]) => (
-                <Link key={href} href={href} style={linkStyle}>{label}</Link>
+          {fcfg.footerShowLinks && (
+            <div>
+              <div style={colHead}>Quick Links</div>
+              <Link href='/games' style={lnk}>All Games</Link>
+              <Link href='/games?status=hot' style={lnk}>Hot Games</Link>
+              <Link href='/games?sort=new' style={lnk}>New Games</Link>
+              {pages.filter(([,,show]) => show).map(([href,label]) => (
+                <Link key={href} href={href} style={lnk}>{label}</Link>
               ))}
             </div>
           )}
 
         </div>
 
-        {cfg.footerShowCopyright && (
-          <div style={{ borderTop: '1px solid rgba(255,255,255,.1)', paddingTop: '20px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-            {cfg.footerText}
+        {fcfg.footerShowCopyright && (
+          <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: '20px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+            {fcfg.footerText}
           </div>
         )}
       </div>
