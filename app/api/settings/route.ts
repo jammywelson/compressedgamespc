@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-const NC = { 'Cache-Control': 'no-store, no-cache', 'Pragma': 'no-cache' }
+const NC = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
 export async function GET(req: NextRequest) {
   const key = new URL(req.url).searchParams.get('key')
   try {
