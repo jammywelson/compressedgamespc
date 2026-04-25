@@ -2,64 +2,45 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function AdminLogin() {
+export default function Login() {
   const router = useRouter()
-  const [form, setForm]     = useState({ username:'', password:'' })
-  const [error, setError]   = useState('')
+  const [u, setU] = useState('')
+  const [p, setP] = useState('')
+  const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const submit = async (e: any) => {
     e.preventDefault()
-    setError(''); setLoading(true)
-    try {
-      const res = await fetch('/api/admin/login', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(form)
-      })
-      if (res.ok) {
-        router.replace('/admin')
-        router.refresh()
-      } else {
-        const d = await res.json()
-        setError(d.error || 'Username ya password galat hai')
-      }
-    } catch(e) { setError('Network error') }
+    setLoading(true); setErr('')
+    const r = await fetch('/api/admin/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})})
+    const d = await r.json()
     setLoading(false)
+    if (d.ok) router.push('/admin')
+    else setErr(d.error || 'Invalid credentials')
   }
 
-  const SI: React.CSSProperties = { width:'100%', background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.15)', borderRadius:'8px', padding:'12px 14px', color:'#fff', fontSize:'14px', outline:'none', fontFamily:'inherit' }
-
   return (
-    <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#0f0c29,#302b63)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'system-ui', padding:'20px' }}>
-      <div style={{ width:'100%', maxWidth:'380px' }}>
-        <div style={{ textAlign:'center' as any, marginBottom:'28px' }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:'8px' }}>
-            <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'#fff', fontSize:'12px', fontWeight:700, padding:'4px 8px', borderRadius:'6px' }}>CGP</div>
-            <span style={{ fontSize:'18px', fontWeight:700, color:'#fff' }}>Admin Panel</span>
-          </div>
+    <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'-apple-system,sans-serif'}}>
+      <div style={{width:'100%',maxWidth:'400px',padding:'0 20px'}}>
+        <div style={{textAlign:'center',marginBottom:'32px'}}>
+          <div style={{width:'56px',height:'56px',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',borderRadius:'14px',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'24px',fontWeight:800,color:'#fff'}}>C</div>
+          <h1 style={{margin:0,color:'#fff',fontSize:'22px',fontWeight:700}}>CGP Admin Panel</h1>
+          <p style={{color:'#94a3b8',margin:'6px 0 0',fontSize:'14px'}}>Sign in to your dashboard</p>
         </div>
-        <div style={{ background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)', borderRadius:'14px', padding:'28px' }}>
-          <h1 style={{ fontSize:'20px', fontWeight:700, color:'#fff', marginBottom:'20px' }}>Login</h1>
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom:'14px' }}>
-              <label style={{ fontSize:'12px', color:'rgba(255,255,255,.5)', marginBottom:'6px', display:'block' }}>Username</label>
-              <input style={SI} value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))} placeholder="admin" autoFocus required/>
-            </div>
-            <div style={{ marginBottom:'20px' }}>
-              <label style={{ fontSize:'12px', color:'rgba(255,255,255,.5)', marginBottom:'6px', display:'block' }}>Password</label>
-              <input type="password" style={SI} value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="••••••••" required/>
-            </div>
-            {error && <div style={{ background:'rgba(229,57,53,.15)', border:'1px solid rgba(229,57,53,.3)', borderRadius:'7px', padding:'10px', marginBottom:'14px', fontSize:'13px', color:'#fca5a5' }}>⚠️ {error}</div>}
-            <button type="submit" disabled={loading}
-              style={{ width:'100%', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'#fff', border:'none', borderRadius:'8px', padding:'13px', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-              {loading?'...':'Login →'}
-            </button>
-          </form>
-          <div style={{ textAlign:'center' as any, marginTop:'16px' }}>
-            <a href="/" style={{ fontSize:'12px', color:'rgba(255,255,255,.25)', textDecoration:'none' }}>← Back to Site</a>
+        <form onSubmit={submit} style={{background:'#1e293b',borderRadius:'16px',padding:'32px',border:'1px solid rgba(255,255,255,.08)'}}>
+          {err && <div style={{background:'#fee2e2',color:'#991b1b',padding:'10px 14px',borderRadius:'8px',fontSize:'13px',marginBottom:'16px',fontWeight:500}}>{err}</div>}
+          <div style={{marginBottom:'16px'}}>
+            <label style={{display:'block',fontSize:'13px',fontWeight:600,color:'#94a3b8',marginBottom:'6px'}}>Username or Email</label>
+            <input value={u} onChange={e=>setU(e.target.value)} autoFocus style={{width:'100%',background:'#0f172a',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'#fff',fontSize:'14px',outline:'none',boxSizing:'border-box'}} />
           </div>
-        </div>
+          <div style={{marginBottom:'24px'}}>
+            <label style={{display:'block',fontSize:'13px',fontWeight:600,color:'#94a3b8',marginBottom:'6px'}}>Password</label>
+            <input type="password" value={p} onChange={e=>setP(e.target.value)} style={{width:'100%',background:'#0f172a',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'#fff',fontSize:'14px',outline:'none',boxSizing:'border-box'}} />
+          </div>
+          <button type="submit" disabled={loading} style={{width:'100%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',color:'#fff',border:'none',borderRadius:'8px',padding:'12px',fontWeight:700,fontSize:'15px',cursor:'pointer',opacity:loading?0.7:1}}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
       </div>
     </div>
   )
