@@ -1,84 +1,78 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 
-export const metadata: Metadata = {
-  title: 'All PC Games - Free Highly Compressed Download',
-  description: 'Browse all free highly compressed PC games.',
+export const dynamic = 'force-dynamic'
+
+async function getGames(search: string, category: string, status: string) {
+  const where: any = { status: 'published' }
+  if (search) where.OR = [{ title: { contains: search, mode: 'insensitive' } }]
+  if (category) where.category = category
+  if (status === 'hot') where.hot = true
+  if (status === 'featured') where.featured = true
+  if (status === 'trending') where.trending = true
+  return prisma.game.findMany({ where, orderBy: { createdAt: 'desc' }, take: 50 })
 }
 
-export const revalidate = 60
+const GRADS = ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#3b82f6,#06b6d4)','linear-gradient(135deg,#10b981,#059669)','linear-gradient(135deg,#f59e0b,#ef4444)','linear-gradient(135deg,#ec4899,#8b5cf6)']
+const CATS = ['All','Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Shooting','Sci-Fi','Survival','Puzzle','Old Games']
 
-const CATS = ['All','Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Shooting','Sci-Fi','Survival','Puzzle','Old Games','Action RPG']
-
-async function getGames(category?: string, q?: string, status?: string) {
-  try {
-    const where: any = { NOT: { status: 'draft' } }
-    if (category && category !== 'All') where.category = category
-    if (status) where.status = status
-    if (q) where.title = { contains: q, mode: 'insensitive' }
-    return await prisma.game.findMany({ where, orderBy: { createdAt: 'desc' } })
-  } catch(e) { return [] }
-}
-
-export default async function GamesPage({ searchParams }: { searchParams: { category?: string; q?: string; status?: string } }) {
-  const cat    = searchParams.category || 'All'
-  const q      = searchParams.q || ''
+export default async function GamesPage({ searchParams }: { searchParams: Record<string,string> }) {
+  const search = searchParams.search || ''
+  const category = searchParams.category || ''
   const status = searchParams.status || ''
-  const games  = await getGames(cat === 'All' ? undefined : cat, q, status)
+  const games = await getGames(search, category, status)
+
+  const title = search ? `Search: "${search}"` : category ? `${category} Games` : status === 'hot' ? '🔥 Hot Games' : 'All Games'
 
   return (
-    <>
-      
-      <main style={{ maxWidth:'1200px', margin:'0 auto', padding:'16px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px', flexWrap:'wrap' as any }}>
-          <div style={{ width:'4px', height:'18px', background:'#4f46e5', borderRadius:'2px' }}/>
-          <h1 style={{ fontSize:'20px', fontWeight:700, color:'#111827' }}>
-            {q ? `Search: "${q}"` : status === 'hot' ? 'ð¥ Hot Games' : cat === 'All' ? 'All Games' : cat}
-          </h1>
-          <span style={{ fontSize:'13px', color:'#6b7280' }}>{games.length} games</span>
-        </div>
+    <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'24px' }}>
+      <div style={{ marginBottom:'24px' }}>
+        <h1 style={{ margin:'0 0 4px', fontSize:'26px', fontWeight:800, color:'#0f172a' }}>{title}</h1>
+        <p style={{ margin:0, fontSize:'14px', color:'#64748b' }}>{games.length} games found</p>
+      </div>
 
-        {/* Category filter */}
-        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' as any, marginBottom:'20px' }}>
-          {CATS.map(c => (
-            <Link key={c} href={c==='All'?'/games':`/games?category=${encodeURIComponent(c)}`}
-              style={{ background:cat===c?'#4f46e5':'#fff', color:cat===c?'#fff':'#374151', border:`1px solid ${cat===c?'#4f46e5':'#e5e7eb'}`, borderRadius:'6px', padding:'5px 12px', fontSize:'12px', fontWeight:500 }}>
-              {c}
+      <div style={{ display:'flex', gap:'8px', flexWrap:'wrap', marginBottom:'24px' }}>
+        {CATS.map(cat => (
+          <Link key={cat} href={cat==='All'?'/games':`/games?category=${encodeURIComponent(cat)}`}
+            style={{ padding:'6px 14px', borderRadius:'20px', textDecoration:'none', fontSize:'13px', fontWeight:600, background:category===cat||(cat==='All'&&!category)?'#6366f1':'#f1f5f9', color:category===cat||(cat==='All'&&!category)?'#fff':'#64748b' }}>
+            {cat}
+          </Link>
+        ))}
+      </div>
+
+      {games.length === 0 ? (
+        <div style={{ textAlign:'center', padding:'80px', background:'#fff', borderRadius:'16px' }}>
+          <p style={{ fontSize:'48px', margin:'0 0 12px' }}>🎮</p>
+          <p style={{ color:'#94a3b8', fontSize:'16px' }}>{search ? `No games found for "${search}"` : 'No games in this category yet.'}</p>
+        </div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'16px' }}>
+          {games.map((g: any, i: number) => (
+            <Link key={g.id} href={`/games/${g.slug}`} style={{ display:'block', background:'#fff', borderRadius:'14px', overflow:'hidden', textDecoration:'none', boxShadow:'0 2px 8px rgba(0,0,0,.08)', border:'1px solid #e2e8f0' }}>
+              <div style={{ height:'180px', overflow:'hidden', position:'relative' }}>
+                {g.coverImage
+                  ? <img src={g.coverImage} alt={g.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ width:'100%', height:'100%', background:GRADS[i%GRADS.length], display:'flex', alignItems:'center', justifyContent:'center', fontSize:'48px' }}>🎮</div>
+                }
+                {(g.hot||g.featured) && (
+                  <div style={{ position:'absolute', top:'8px', left:'8px' }}>
+                    {g.hot && <span style={{ background:'#ef4444', color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'20px' }}>🔥 HOT</span>}
+                    {g.featured && !g.hot && <span style={{ background:'#6366f1', color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'20px' }}>⭐</span>}
+                  </div>
+                )}
+                <div style={{ position:'absolute', bottom:'8px', right:'8px', background:'rgba(0,0,0,.7)', color:'#fff', fontSize:'11px', fontWeight:700, padding:'3px 8px', borderRadius:'6px' }}>{g.size}</div>
+              </div>
+              <div style={{ padding:'12px' }}>
+                <p style={{ margin:'0 0 6px', fontWeight:700, fontSize:'13px', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.title}</p>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontSize:'11px', color:'#64748b', background:'#f1f5f9', padding:'2px 8px', borderRadius:'20px' }}>{g.category}</span>
+                  <span style={{ fontSize:'11px', color:'#94a3b8' }}>⬇ {(g.downloadCount||0).toLocaleString()}</span>
+                </div>
+              </div>
             </Link>
           ))}
         </div>
-
-        {games.length === 0 ? (
-          <div style={{ textAlign:'center' as any, padding:'60px 20px', background:'#fff', borderRadius:'12px', border:'1px solid #e5e7eb' }}>
-            <div style={{ fontSize:'48px', marginBottom:'12px' }}>ð®</div>
-            <div style={{ fontSize:'18px', fontWeight:700, color:'#111827', marginBottom:'8px' }}>
-              {q ? `"${q}" nahi mila` : 'Koi game nahi hai abhi'}
-            </div>
-            <div style={{ fontSize:'13px', color:'#6b7280' }}>
-              {q ? 'Dusra search karo' : 'Admin panel se games add karo'}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:'12px' }}>
-            {games.map(g => (
-              <Link key={g.id} href={`/games/${g.slug}`}
-                style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', overflow:'hidden', textDecoration:'none', display:'block' }}>
-                <div style={{ height:'90px', background:'linear-gradient(135deg,#1a1f3c,#252b4a)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'10px', color:'rgba(255,255,255,.4)', padding:'6px', textAlign:'center' as any, position:'relative' }}>
-                  {g.title}
-                  {g.status==='hot' && <span style={{ position:'absolute', top:'4px', right:'4px', background:'#e53935', color:'#fff', fontSize:'8px', fontWeight:700, padding:'1px 5px', borderRadius:'3px' }}>HOT</span>}
-                </div>
-                <div style={{ padding:'8px' }}>
-                  <div style={{ fontSize:'12px', fontWeight:600, color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as any }}>{g.title}</div>
-                  <div style={{ fontSize:'11px', color:'#4f46e5', marginTop:'2px' }}>{g.category}</div>
-                  <div style={{ fontSize:'11px', color:'#16a34a', fontWeight:600 }}>{g.size}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </main>
-      
-    </>
+      )}
+    </div>
   )
 }
