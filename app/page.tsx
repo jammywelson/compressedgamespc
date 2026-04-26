@@ -1,206 +1,175 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 
-export const metadata: Metadata = {
-  title: 'CompressedGamesPC - Free Highly Compressed PC Games Download',
-  description: 'Download highly compressed PC games for free. Direct links, no surveys.',
-}
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
-export const revalidate = 60
+async function getSettings(key: string) {
+  try {
+    const s = await prisma.setting.findUnique({ where: { key } })
+    return s ? JSON.parse(s.value) : {}
+  } catch { return {} }
+}
 
 async function getData() {
   try {
-    const games = await prisma.game.findMany({
-      where: { status: { not: 'draft' } },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    })
-    const total = await prisma.game.count()
-    const dlSum = await prisma.game.aggregate({ _sum: { downloadCount: true } })
+    const [games, total, dlSum] = await Promise.all([
+      prisma.game.findMany({ where: { status: 'published' }, orderBy: { createdAt: 'desc' }, take: 20 }),
+      prisma.game.count({ where: { status: 'published' } }),
+      prisma.game.aggregate({ _sum: { downloadCount: true } }),
+    ])
     return { games, total, downloads: dlSum._sum.downloadCount || 0 }
-  } catch(e) { return { games: [], total: 0, downloads: 0 } }
+  } catch { return { games: [], total: 0, downloads: 0 } }
 }
 
-const GRADS = [
-  'linear-gradient(135deg,#450a0a,#7f1d1d)',
-  'linear-gradient(135deg,#064e3b,#065f46)',
-  'linear-gradient(135deg,#0c4a6e,#075985)',
-]
+const GRADS = ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#3b82f6,#06b6d4)','linear-gradient(135deg,#10b981,#059669)','linear-gradient(135deg,#f59e0b,#ef4444)','linear-gradient(135deg,#ec4899,#8b5cf6)','linear-gradient(135deg,#06b6d4,#3b82f6)']
 
 export default async function HomePage() {
-  const { games, total, downloads } = await getData()
-  const featured = games.find(g => g.featured) || games[0]
-  const top = [...games].sort((a,b) => b.downloadCount - a.downloadCount).slice(0,5)
+  const [{ games, total, downloads }, homeCfg, appCfg] = await Promise.all([
+    getData(), getSettings('homepage'), getSettings('appearance')
+  ])
+
+  const featured = games.filter((g: any) => g.featured).slice(0, 6)
+  const trending = games.filter((g: any) => g.trending || g.hot).slice(0, 6)
+  const latest = games.slice(0, 8)
+
+  const heroTitle = homeCfg.heroTitle || 'Free Highly Compressed\nPC Games Download'
+  const heroSubtitle = homeCfg.heroSubtitle || 'Direct download links. No surveys. Maximum compression!'
+  const heroBtnText = homeCfg.heroBtnText || 'Browse All Games'
+  const statsGames = homeCfg.statsGames || (total + '+')
+  const statsCompression = homeCfg.statsCompression || '75%'
+  const statsSurveys = homeCfg.statsSurveys || '0'
+  const showHero = homeCfg.showHero !== false
+  const showStats = homeCfg.showStats !== false
+  const showFeatured = homeCfg.showFeatured !== false
+  const showTrending = homeCfg.showTrending !== false
+  const showLatest = homeCfg.showLatest !== false
+  const showCategories = homeCfg.showCategories !== false
+  const featuredTitle = homeCfg.featuredTitle || 'Featured Games'
+  const trendingTitle = homeCfg.trendingTitle || 'Trending Now'
+  const latestTitle = homeCfg.latestTitle || 'Latest Releases'
+  const accentColor = appCfg.accentColor || '#4f46e5'
+  const bodyBg = appCfg.bodyBg || '#f0f2f8'
+
+  const CATS = ['Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Shooting','Sci-Fi','Survival','Puzzle','Old Games']
+
+  const GameCard = ({ game, index }: any) => (
+    <Link href={`/games/${game.slug}`} style={{ display:'block', background:'#fff', borderRadius:'14px', overflow:'hidden', textDecoration:'none', boxShadow:'0 2px 8px rgba(0,0,0,.08)', transition:'transform .2s, box-shadow .2s', border:'1px solid #e2e8f0' }}>
+      <div style={{ position:'relative', height:'180px', overflow:'hidden' }}>
+        {game.coverImage
+          ? <img src={game.coverImage} alt={game.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          : <div style={{ width:'100%', height:'100%', background: GRADS[index % GRADS.length], display:'flex', alignItems:'center', justifyContent:'center', fontSize:'48px' }}>🎮</div>
+        }
+        {(game.hot || game.trending || game.featured) && (
+          <div style={{ position:'absolute', top:'8px', left:'8px', display:'flex', gap:'4px', flexWrap:'wrap' }}>
+            {game.hot && <span style={{ background:'#ef4444', color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'20px' }}>🔥 HOT</span>}
+            {game.trending && !game.hot && <span style={{ background:'#f59e0b', color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'20px' }}>📈 TRENDING</span>}
+            {game.featured && !game.hot && !game.trending && <span style={{ background:accentColor, color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'20px' }}>⭐ FEATURED</span>}
+          </div>
+        )}
+        <div style={{ position:'absolute', bottom:'8px', right:'8px', background:'rgba(0,0,0,.7)', color:'#fff', fontSize:'11px', fontWeight:700, padding:'3px 8px', borderRadius:'6px' }}>{game.size}</div>
+      </div>
+      <div style={{ padding:'12px' }}>
+        <p style={{ margin:'0 0 4px', fontWeight:700, fontSize:'14px', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{game.title}</p>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontSize:'11px', color:'#64748b', background:'#f1f5f9', padding:'2px 8px', borderRadius:'20px' }}>{game.category}</span>
+          <span style={{ fontSize:'11px', color:'#94a3b8' }}>⬇ {(game.downloadCount||0).toLocaleString()}</span>
+        </div>
+      </div>
+    </Link>
+  )
+
+  const Section = ({ title, games: gs, viewHref }: any) => gs.length === 0 ? null : (
+    <section style={{ marginBottom:'40px' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+        <h2 style={{ margin:0, fontSize:'20px', fontWeight:800, color:'#0f172a' }}>{title}</h2>
+        <Link href={viewHref} style={{ color:accentColor, textDecoration:'none', fontWeight:600, fontSize:'14px' }}>View all →</Link>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'16px' }}>
+        {gs.map((g: any, i: number) => <GameCard key={g.id} game={g} index={i} />)}
+      </div>
+    </section>
+  )
 
   return (
-    <>
-      
-      <main style={{ maxWidth:'1200px', margin:'0 auto', padding:'12px 16px' }}>
-        {games.length === 0 ? (
-          <>
-            {/* Empty state hero */}
-            <div style={{ background:'linear-gradient(135deg,#1e1b4b,#312e81)', borderRadius:'12px', padding:'40px 20px', textAlign:'center' as any, marginBottom:'16px' }}>
-              <h1 style={{ fontSize:'clamp(22px,5vw,40px)', fontWeight:700, color:'#fff', marginBottom:'10px', lineHeight:1.2 }}>
-                Free Highly Compressed<br/>
-                <span style={{ color:'#818cf8' }}>PC Games Download</span>
-              </h1>
-              <p style={{ color:'rgba(255,255,255,.65)', fontSize:'clamp(13px,2vw,15px)', marginBottom:'20px' }}>
-                Direct download links. No surveys. Maximum compression!
-              </p>
-              <Link href="/games" style={{ background:'#4f46e5', color:'#fff', borderRadius:'8px', padding:'12px 28px', fontSize:'14px', fontWeight:700, display:'inline-block' }}>
-                Browse All Games â
-              </Link>
-            </div>
-            {/* Stats */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'10px', marginBottom:'16px' }}>
-              {[
-                {val:'1000+',label:'Games',color:'#4f46e5',bg:'#eef2ff'},
-                {val:'75%',label:'Avg Compression',color:'#16a34a',bg:'#f0fdf4'},
-                {val:'Free',label:'Always Free',color:'#ea580c',bg:'#fff7ed'},
-                {val:'0',label:'Surveys',color:'#0891b2',bg:'#ecfeff'},
-              ].map(s=>(
-                <div key={s.label} style={{ background:s.bg, borderRadius:'10px', padding:'14px', textAlign:'center' as any }}>
-                  <div style={{ fontSize:'clamp(18px,4vw,26px)', fontWeight:700, color:s.color }}>{s.val}</div>
-                  <div style={{ fontSize:'11px', color:'#6b7280', marginTop:'2px' }}>{s.label}</div>
-                </div>
+    <div style={{ background: bodyBg, minHeight:'100vh' }}>
+
+      {/* HERO */}
+      {showHero && (
+        <section style={{ background:'linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e1b4b 100%)', padding:'60px 24px', textAlign:'center', position:'relative', overflow:'hidden' }}>
+          <div style={{ position:'absolute', inset:0, opacity:.05, backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px),radial-gradient(circle at 80% 20%,#fff 1px,transparent 1px)', backgroundSize:'60px 60px' }} />
+          <div style={{ maxWidth:'700px', margin:'0 auto', position:'relative' }}>
+            <h1 style={{ margin:'0 0 16px', fontSize:'clamp(28px,5vw,52px)', fontWeight:900, color:'#fff', lineHeight:1.15 }}>
+              {heroTitle.split('\n').map((line: string, i: number) => (
+                <span key={i} style={{ display:'block', color: i === 1 ? '#a5b4fc' : '#fff' }}>{line}</span>
               ))}
-            </div>
-            {/* Categories */}
-            <div style={{ background:'#fff', borderRadius:'12px', padding:'16px', border:'1px solid #e5e7eb' }}>
-              <h2 style={{ fontSize:'16px', fontWeight:700, color:'#111827', marginBottom:'12px', display:'flex', alignItems:'center', gap:'8px' }}>
-                <div style={{ width:'4px', height:'16px', background:'#4f46e5', borderRadius:'2px' }}/>
-                Browse by Category
-              </h2>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(90px,1fr))', gap:'8px' }}>
-                {['Action','Fighting','Strategy','Horror','Adventure','Racing','Simulation','Sports','Shooting','Sci-Fi','Survival','Puzzle','Old Games','Action RPG'].map(cat=>(
-                  <Link key={cat} href={`/games?category=${encodeURIComponent(cat)}`}
-                    style={{ background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:'8px', padding:'9px 6px', textAlign:'center' as any, fontSize:'11px', fontWeight:500, color:'#374151' }}>
-                    {cat}
-                  </Link>
-                ))}
+            </h1>
+            <p style={{ margin:'0 0 28px', fontSize:'16px', color:'rgba(255,255,255,.7)', lineHeight:1.6 }}>{heroSubtitle}</p>
+            <Link href="/games" style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:accentColor, color:'#fff', padding:'14px 32px', borderRadius:'12px', textDecoration:'none', fontWeight:700, fontSize:'16px', boxShadow:'0 4px 20px rgba(99,102,241,.5)' }}>
+              {heroBtnText} →
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* STATS */}
+      {showStats && (
+        <section style={{ background:'#fff', borderBottom:'1px solid #e2e8f0' }}>
+          <div style={{ maxWidth:'1200px', margin:'0 auto', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))' }}>
+            {[
+              { label:'Games Available', value: statsGames, icon:'🎮', color:'#6366f1' },
+              { label:'Avg Compression', value: statsCompression, icon:'🗜', color:'#10b981' },
+              { label:'Always Free', value:'Free', icon:'💚', color:'#3b82f6' },
+              { label:'Surveys', value: statsSurveys, icon:'🚫', color:'#ef4444' },
+            ].map(s => (
+              <div key={s.label} style={{ padding:'24px 20px', textAlign:'center', borderRight:'1px solid #f1f5f9' }}>
+                <div style={{ fontSize:'32px', marginBottom:'6px' }}>{s.icon}</div>
+                <div style={{ fontSize:'26px', fontWeight:900, color:s.color }}>{s.value}</div>
+                <div style={{ fontSize:'13px', color:'#94a3b8', marginTop:'4px' }}>{s.label}</div>
               </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* HERO */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'10px', marginBottom:'16px' }}>
-              {featured && (
-                <Link href={`/games/${featured.slug}`}
-                  style={{ background:'linear-gradient(135deg,#1e1b4b,#312e81)', borderRadius:'12px', padding:'24px', display:'flex', flexDirection:'column', justifyContent:'flex-end', minHeight:'180px', position:'relative', overflow:'hidden', textDecoration:'none' }}>
-                  <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,.8),transparent)' }}/>
-                  <div style={{ position:'relative', zIndex:1 }}>
-                    <div style={{ display:'flex', gap:'6px', marginBottom:'8px', flexWrap:'wrap' as any }}>
-                      <span style={{ background:'#e53935', color:'#fff', fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'4px' }}>Featured</span>
-                      <span style={{ background:'rgba(79,70,229,.8)', color:'#fff', fontSize:'10px', padding:'2px 8px', borderRadius:'4px' }}>â Compressed</span>
-                    </div>
-                    <h1 style={{ fontSize:'clamp(18px,4vw,28px)', fontWeight:700, color:'#fff', lineHeight:1.1, marginBottom:'6px' }}>{featured.title}</h1>
-                    <p style={{ color:'rgba(255,255,255,.6)', fontSize:'13px', marginBottom:'12px' }}>
-                      {featured.category} Â· <span style={{ color:'#86efac', fontWeight:600 }}>{featured.size}</span>
-                    </p>
-                    <span style={{ background:'#4f46e5', color:'#fff', borderRadius:'8px', padding:'8px 18px', fontSize:'13px', fontWeight:700, display:'inline-block' }}>
-                      â¬ Download Now
-                    </span>
-                  </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* MAIN CONTENT */}
+      <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'32px 24px' }}>
+
+        {/* FEATURED */}
+        {showFeatured && featured.length > 0 && <Section title={'⭐ ' + featuredTitle} games={featured} viewHref="/games?featured=true" />}
+
+        {/* TRENDING */}
+        {showTrending && trending.length > 0 && <Section title={'🔥 ' + trendingTitle} games={trending} viewHref="/games?trending=true" />}
+
+        {/* LATEST */}
+        {showLatest && <Section title={'🆕 ' + latestTitle} games={latest} viewHref="/games" />}
+
+        {/* CATEGORIES */}
+        {showCategories && (
+          <section style={{ marginBottom:'40px' }}>
+            <h2 style={{ margin:'0 0 16px', fontSize:'20px', fontWeight:800, color:'#0f172a' }}>📁 Browse by Category</h2>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:'10px' }}>
+              {CATS.map((cat, i) => (
+                <Link key={cat} href={`/games?category=${encodeURIComponent(cat)}`}
+                  style={{ padding:'10px 18px', borderRadius:'10px', background:'#fff', color:'#374151', textDecoration:'none', fontWeight:600, fontSize:'14px', border:'2px solid #e2e8f0', boxShadow:'0 1px 3px rgba(0,0,0,.05)', transition:'all .15s', display:'flex', alignItems:'center', gap:'6px' }}>
+                  <span style={{ fontSize:'16px' }}>🎮</span> {cat}
                 </Link>
-              )}
-              {/* Side games â show on desktop only via CSS */}
-              <style>{`@media(min-width:640px){.hero-grid{display:grid!important;grid-template-columns:1fr 240px!important;}.hero-side{display:flex!important;}}`}</style>
-            </div>
-
-            {/* STATS */}
-            <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', display:'flex', overflowX:'auto' as any, marginBottom:'16px' }}>
-              {[
-                {val:`${total}+`,label:'Total Games',color:'#4f46e5'},
-                {val:'75%',label:'Avg Compression',color:'#16a34a'},
-                {val:downloads>0?`${(downloads/1000).toFixed(0)}K+`:'Free',label:downloads>0?'Downloads':'Always Free',color:'#ea580c'},
-                {val:'100%',label:'No Surveys',color:'#0891b2'},
-              ].map((s,i,arr)=>(
-                <div key={s.label} style={{ flex:'1 1 70px', textAlign:'center' as any, padding:'12px 6px', borderRight:i<arr.length-1?'1px solid #f3f4f6':'none', minWidth:'70px' }}>
-                  <div style={{ fontSize:'clamp(16px,3vw,22px)', fontWeight:700, color:s.color }}>{s.val}</div>
-                  <div style={{ fontSize:'10px', color:'#6b7280', marginTop:'1px' }}>{s.label}</div>
-                </div>
               ))}
             </div>
-
-            {/* NEW GAMES SCROLL */}
-            <div style={{ marginBottom:'16px' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
-                <div style={{ width:'4px', height:'16px', background:'#4f46e5', borderRadius:'2px' }}/>
-                <h2 style={{ fontSize:'16px', fontWeight:700, color:'#111827' }}>New Games</h2>
-                <Link href="/games" style={{ marginLeft:'auto', fontSize:'12px', color:'#4f46e5' }}>View All â</Link>
-              </div>
-              <div style={{ display:'flex', gap:'8px', overflowX:'auto' as any, paddingBottom:'6px' }}>
-                <style>{`.new-scroll::-webkit-scrollbar{display:none}`}</style>
-                {games.slice(0,10).map(g=>(
-                  <Link key={g.id} href={`/games/${g.slug}`} className="new-scroll"
-                    style={{ minWidth:'100px', flexShrink:0, background:'#fff', border:'1px solid #e5e7eb', borderRadius:'8px', overflow:'hidden', textDecoration:'none' }}>
-                    <div style={{ height:'58px', background:'linear-gradient(135deg,#1a1f3c,#252b4a)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'9px', color:'rgba(255,255,255,.4)', textAlign:'center' as any, padding:'4px' }}>{g.title}</div>
-                    <div style={{ padding:'5px 6px' }}>
-                      <div style={{ fontSize:'10px', fontWeight:600, color:'#111827', whiteSpace:'nowrap' as any, overflow:'hidden', textOverflow:'ellipsis' }}>{g.title}</div>
-                      <div style={{ fontSize:'9px', color:'#16a34a' }}>{g.size}</div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* TOP + LATEST - responsive grid */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'16px', marginBottom:'16px' }}>
-              <style>{`@media(min-width:640px){.main-grid{grid-template-columns:240px 1fr!important;}}`}</style>
-              <div className="main-grid" style={{ display:'grid', gridTemplateColumns:'1fr', gap:'16px' }}>
-                {/* Top */}
-                <div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
-                    <div style={{ width:'4px', height:'16px', background:'linear-gradient(#ea580c,#f59e0b)', borderRadius:'2px' }}/>
-                    <h2 style={{ fontSize:'16px', fontWeight:700, color:'#111827' }}>Top Downloads</h2>
-                  </div>
-                  <div style={{ display:'flex', flexDirection:'column' as any, gap:'6px' }}>
-                    {top.map((g,i)=>(
-                      <Link key={g.id} href={`/games/${g.slug}`}
-                        style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'8px', padding:'10px 12px', display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
-                        <span style={{ fontSize:'16px', fontWeight:700, color:['#f59e0b','#94a3b8','#b45310','#9ca3af'][i]||'#9ca3af', minWidth:'18px', textAlign:'center' as any }}>{i+1}</span>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:'12px', fontWeight:600, color:'#111827', whiteSpace:'nowrap' as any, overflow:'hidden', textOverflow:'ellipsis' }}>{g.title}</div>
-                          <div style={{ fontSize:'10px', color:'#6b7280' }}>{g.downloadCount} downloads</div>
-                        </div>
-                        <span style={{ fontSize:'10px', color:'#16a34a', fontWeight:600, flexShrink:0 }}>{g.size}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Latest */}
-                <div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
-                    <div style={{ width:'4px', height:'16px', background:'linear-gradient(#16a34a,#0891b2)', borderRadius:'2px' }}/>
-                    <h2 style={{ fontSize:'16px', fontWeight:700, color:'#111827' }}>Latest Games</h2>
-                    <Link href="/games" style={{ marginLeft:'auto', fontSize:'12px', color:'#4f46e5' }}>View All â</Link>
-                  </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(110px,1fr))', gap:'8px' }}>
-                    {games.slice(0,8).map(g=>(
-                      <Link key={g.id} href={`/games/${g.slug}`}
-                        style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'10px', overflow:'hidden', display:'block', textDecoration:'none' }}>
-                        <div style={{ height:'72px', background:'linear-gradient(135deg,#1a1f3c,#252b4a)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'9px', color:'rgba(255,255,255,.4)', padding:'6px', textAlign:'center' as any, position:'relative' }}>
-                          {g.title}
-                          {g.status==='hot' && <span style={{ position:'absolute', top:'3px', right:'3px', background:'#e53935', color:'#fff', fontSize:'7px', fontWeight:700, padding:'1px 4px', borderRadius:'2px' }}>HOT</span>}
-                        </div>
-                        <div style={{ padding:'6px 7px 8px' }}>
-                          <div style={{ fontSize:'11px', fontWeight:600, color:'#111827', whiteSpace:'nowrap' as any, overflow:'hidden', textOverflow:'ellipsis' }}>{g.title}</div>
-                          <div style={{ fontSize:'10px', color:'#4f46e5' }}>{g.category}</div>
-                          <div style={{ fontSize:'10px', color:'#16a34a', fontWeight:600 }}>{g.size}</div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
+          </section>
         )}
-      </main>
-      
-    </>
+
+        {/* EMPTY STATE */}
+        {games.length === 0 && (
+          <div style={{ textAlign:'center', padding:'80px 20px' }}>
+            <div style={{ fontSize:'64px', marginBottom:'16px' }}>🎮</div>
+            <h2 style={{ color:'#94a3b8', fontWeight:600 }}>No games published yet</h2>
+            <p style={{ color:'#94a3b8' }}>Games will appear here once published from the admin panel.</p>
+            <Link href="/admin/games/add" style={{ color:accentColor, textDecoration:'none', fontWeight:700 }}>Add your first game →</Link>
+          </div>
+        )}
+
+      </div>
+    </div>
   )
 }
